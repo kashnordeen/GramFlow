@@ -1,5 +1,6 @@
 import Database from 'better-sqlite3';
 import path from 'path';
+import fs from 'fs';
 
 // Define DB path
 // In production (Render/Railway), we use the mounted persistent volume at /app/data
@@ -12,9 +13,30 @@ let db: ReturnType<typeof Database> | null = null;
 
 export function getDb() {
   if (!db) {
-    db = new Database(dbPath);
-    db.pragma('journal_mode = WAL');
-    initializeDb(db);
+    console.log(`[DB] Initializing database at: ${dbPath}`);
+    // Ensure the directory exists
+    const dir = path.dirname(dbPath);
+    try {
+      if (!fs.existsSync(dir)) {
+        console.log(`[DB] Directory ${dir} not found. Attempting to create...`);
+        fs.mkdirSync(dir, { recursive: true });
+        console.log(`[DB] Directory ${dir} created successfully.`);
+      } else {
+        console.log(`[DB] Directory ${dir} exists.`);
+      }
+    } catch (err) {
+      console.error(`[DB] Failed to check/create directory ${dir}:`, err);
+    }
+
+    try {
+      db = new Database(dbPath);
+      db.pragma('journal_mode = WAL');
+      initializeDb(db);
+      console.log(`[DB] Database connected and initialized.`);
+    } catch (initErr) {
+      console.error(`[DB] Critical Error opening database:`, initErr);
+      throw initErr;
+    }
   }
   return db;
 }

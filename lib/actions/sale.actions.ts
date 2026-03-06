@@ -3,6 +3,7 @@
 import { getDb } from "../db";
 import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
+import { getSessionUser } from "./auth.actions";
 
 export async function getAllSales() {
     const db = getDb();
@@ -38,16 +39,8 @@ export async function createSale(formData: FormData) {
 
     try {
         const db = getDb();
-        const cookieStore = await cookies();
-        const activeEmail = cookieStore.get("gramflow_auth")?.value;
-        let adminName = "A"; // Default to 'A' for Admin if mapping fails
-
-        if (activeEmail) {
-            const adminUser = db.prepare("SELECT name FROM users WHERE email = ?").get(activeEmail) as { name: string } | undefined;
-            if (adminUser && adminUser.name) {
-                adminName = adminUser.name;
-            }
-        }
+        const user = await getSessionUser();
+        let adminName = user?.name || "A";
 
         // Inject the Hidden Admin Tag into the Comments Payload
         const adminTag = `||ADMIN||${adminName}||`;

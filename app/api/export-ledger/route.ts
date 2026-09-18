@@ -1,41 +1,38 @@
 import { NextRequest } from 'next/server';
-import { getSessionUser } from '@/lib/actions/auth.actions';
-import { getDb } from '@/lib/db';
+import { requirePermission } from '@/lib/auth/authorization';
+import { query } from '@/lib/db';
+import { Customer, StockBatch, Sale } from '@/types';
+import { escapeHtml } from '@/lib/html';
 
-export async function GET(req: NextRequest) {
-    const user = await getSessionUser();
-
-    if (!user) {
-        return new Response("Unauthorized", { status: 401 });
-    }
-
+export async function GET(_req: NextRequest) {
     try {
-        const db = getDb();
+        const user = await requirePermission("reports.read");
 
         // 1. Fetch Outstanding Loans
-        const customers = db.prepare(`
+        const customers = (await query<Customer>(`
             SELECT id, name, phone, total_loan, old_loan 
             FROM customers 
             WHERE (total_loan + old_loan) > 0 
             ORDER BY (total_loan + old_loan) DESC
-        `).all() as any[];
+        `)).rows;
 
         // 2. Fetch Active Inventory
-        const stockBatches = db.prepare(`
+        const stockBatches = (await query<StockBatch>(`
             SELECT id, grams, price_per_gram, remaining_grams, created_at
             FROM stock_batches 
             WHERE remaining_grams > 0 
             ORDER BY created_at ASC
-        `).all() as any[];
+        `)).rows;
 
         // 3. Fetch Recent Sales (Last 50)
-        const recentSales = db.prepare(`
+        const recentSales = (await query<Sale>(`
             SELECT s.id, c.name as customer_name, s.grams_sold, s.final_amount, s.amount_received, s.balance, s.created_at
             FROM sales s
             JOIN customers c ON s.customer_id = c.id
+            WHERE s.status = 'POSTED'
             ORDER BY s.created_at DESC
             LIMIT 50
-        `).all() as any[];
+        `)).rows;
 
         const totalDebt = customers.reduce((sum, c) => sum + (c.total_loan || 0) + (c.old_loan || 0), 0);
         const totalStock = stockBatches.reduce((sum, b) => sum + (b.remaining_grams || 0), 0);
@@ -127,7 +124,7 @@ export async function GET(req: NextRequest) {
                 </div>
                 <div class="meta">
                     <p style="margin:0 0 0.25rem 0;">Generated: <strong>${new Date().toLocaleString()}</strong></p>
-                    <p style="margin:0;">Requested By: <strong>${user.name}</strong> (${user.email})</p>
+                    <p style="margin:0;">Requested By: <strong>${escapeHtml(user.name)}</strong> (${escapeHtml(user.email)})</p>
                 </div>
             </div>
 
@@ -159,8 +156,8 @@ export async function GET(req: NextRequest) {
                 <tbody>
                     ${customers.map(c => `
                         <tr>
-                            <td><strong>${c.name}</strong></td>
-                            <td style="color:#666">${c.phone || 'N/A'}</td>
+                            <td><strong>${escapeHtml(c.name)}</strong></td>
+                            <td style="color:#666">${escapeHtml(c.phone || 'N/A')}</td>
                             <td class="text-right amount" style="color:#d32f2f">₹${((c.total_loan || 0) + (c.old_loan || 0)).toFixed(2)}</td>
                         </tr>
                     `).join('')}
@@ -210,7 +207,7 @@ export async function GET(req: NextRequest) {
             return `
                         <tr>
                             <td style="color:#666">${new Date(s.created_at.replace(' ', 'T') + 'Z').toLocaleString([], { year: 'numeric', month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</td>
-                            <td>${s.customer_name}</td>
+                            <td>${escapeHtml(s.customer_name)}</td>
                             <td class="text-right amount">${s.grams_sold.toFixed(2)}g</td>
                             <td class="text-right amount">₹${s.final_amount.toFixed(2)}</td>
                             <td class="text-right" style="color: ${isLoan ? '#d32f2f' : '#388e3c'}; font-weight: bold;">
@@ -241,7 +238,10 @@ export async function GET(req: NextRequest) {
 
         return new Response(html, {
             headers: {
-                'Content-Type': 'text/html; charset=utf-8'
+                'Content-Type': 'text/html; charset=utf-8',
+                'Cache-Control': 'no-store, max-age=0',
+                'X-Content-Type-Options': 'nosniff',
+                'Content-Security-Policy': "default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; img-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'"
             },
         });
 

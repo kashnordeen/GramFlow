@@ -1,12 +1,15 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { createPortal } from "react-dom";
 import { Edit2, X, AlertTriangle } from "lucide-react";
 import { updateStockBatch } from "@/lib/actions/stock.actions";
 import { showToast } from "@/components/ToastProvider";
+import { StockBatch } from "@/types";
+import { useAccess } from "@/components/AccessProvider";
 
-export function EditBatchBtn({ batch }: { batch: any }) {
+export function EditBatchBtn({ batch }: { batch: StockBatch }) {
+    const { hasPermission } = useAccess();
     const [isOpen, setIsOpen] = useState(false);
     const [loading, setLoading] = useState(false);
 
@@ -26,7 +29,7 @@ export function EditBatchBtn({ batch }: { batch: any }) {
         if (res.error) {
             showToast(res.error, "error");
         } else {
-            showToast("Stock batch parameters successfully updated.", "success");
+            showToast("Stock batch parameters updated successfully.", "success");
             setIsOpen(false);
         }
         setLoading(false);
@@ -34,66 +37,53 @@ export function EditBatchBtn({ batch }: { batch: any }) {
 
     const soldAmount = batch.grams - batch.remaining_grams;
 
+    if (!hasPermission("inventory.update")) return null;
     return (
         <>
             <button
                 type="button"
                 onClick={() => setIsOpen(true)}
                 title="Edit Batch Details"
-                style={{
-                    background: 'rgba(234, 179, 8, 0.15)',
-                    color: '#facc15',
-                    border: '1px solid rgba(234, 179, 8, 0.3)',
-                    padding: '0.4rem',
-                    borderRadius: '6px',
-                    cursor: 'pointer',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    transition: 'all 0.2s',
-                    marginRight: '0.4rem'
-                }}
-                onMouseOver={(e) => { e.currentTarget.style.background = 'rgba(234, 179, 8, 0.3)' }}
-                onMouseOut={(e) => { e.currentTarget.style.background = 'rgba(234, 179, 8, 0.15)' }}
+                className="action-icon-btn"
             >
-                <Edit2 size={16} />
+                <Edit2 size={15} />
             </button>
 
             {isOpen && typeof document !== 'undefined' && createPortal(
-                <div className="modal-overlay">
-                    <div className="glass-panel animate-fade-in" style={{ width: '100%', maxWidth: '400px', padding: '2rem', position: 'relative', textAlign: 'left' }}>
+                <div className="modal-overlay" onClick={() => setIsOpen(false)}>
+                    <div className="modal-card animate-fade-in" onClick={(e) => e.stopPropagation()}>
                         <button
                             onClick={() => setIsOpen(false)}
-                            style={{ position: 'absolute', top: '1rem', right: '1rem', background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}
+                            style={{ position: 'absolute', top: '1.25rem', right: '1.25rem', background: 'var(--bg-subtle)', border: 'none', borderRadius: '50%', width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-secondary)', cursor: 'pointer' }}
                         >
-                            <X size={24} />
+                            <X size={18} />
                         </button>
 
-                        <h3 style={{ marginTop: 0, marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                            <Edit2 className="text-accent" /> Modify Stock Batch
+                        <h3 style={{ marginTop: 0, marginBottom: '1.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '1.25rem' }}>
+                            <Edit2 size={20} /> Modify Stock Batch
                         </h3>
 
                         {soldAmount > 0 && (
-                            <div style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)', padding: '0.75rem', borderRadius: '8px', marginBottom: '1.5rem', display: 'flex', gap: '0.75rem', alignItems: 'flex-start' }}>
-                                <AlertTriangle size={18} className="text-error" style={{ flexShrink: 0, marginTop: '2px' }} />
-                                <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-main)', lineHeight: 1.4 }}>
-                                    <strong>Caution:</strong> {soldAmount.toFixed(2)}g of this batch has already been fulfilled to customers. You cannot reduce total grams below this consumed amount!
+                            <div style={{ background: 'var(--warning-bg)', border: '1px solid rgba(180, 83, 9, 0.2)', padding: '0.75rem 1rem', borderRadius: 'var(--radius-sm)', marginBottom: '1.25rem', display: 'flex', gap: '0.65rem', alignItems: 'flex-start' }}>
+                                <AlertTriangle size={18} style={{ color: 'var(--warning)', flexShrink: 0, marginTop: '2px' }} />
+                                <p style={{ margin: 0, fontSize: '0.82rem', color: 'var(--text-primary)', lineHeight: 1.4 }}>
+                                    <strong>Notice:</strong> {soldAmount.toFixed(2)}g of this batch has already been sold. You cannot reduce total grams below this consumed amount.
                                 </p>
                             </div>
                         )}
 
                         <form onSubmit={handleSave}>
-                            <div className="form-group mb-2">
+                            <div className="form-group">
                                 <label>Total Ingested Grams</label>
                                 <input type="number" step="0.01" min={soldAmount > 0 ? soldAmount : 0.01} className="input-field" value={grams} onChange={e => setGrams(e.target.value)} required />
                             </div>
-                            <div className="form-group mb-2">
-                                <label>Cost Rate (per gram)</label>
+                            <div className="form-group">
+                                <label>Cost Rate (per gram) ₹</label>
                                 <input type="number" step="0.01" className="input-field" value={price} onChange={e => setPrice(e.target.value)} required />
                             </div>
 
-                            <div style={{ display: 'flex', gap: '1rem', marginTop: '2rem' }}>
-                                <button type="button" onClick={() => setIsOpen(false)} className="btn" style={{ flex: 1, background: 'rgba(255,255,255,0.05)', color: 'white' }}>Cancel</button>
+                            <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1.75rem' }}>
+                                <button type="button" onClick={() => setIsOpen(false)} className="btn btn-secondary" style={{ flex: 1 }}>Cancel</button>
                                 <button type="submit" className="btn btn-primary" style={{ flex: 1 }} disabled={loading}>
                                     {loading ? "Saving..." : "Apply Updates"}
                                 </button>

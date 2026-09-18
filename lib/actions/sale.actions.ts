@@ -1,277 +1,119 @@
 "use server";
 
-import { getDb } from "../db";
+import { query, withTransaction } from "../db";
 import { revalidatePath } from "next/cache";
-import { cookies } from "next/headers";
-import { getSessionUser } from "./auth.actions";
+import { requirePermission } from "../auth/authorization";
+import { postJournal, reverseJournals, JournalLineInput } from "../accounting";
+import { writeAuditLog } from "../audit";
+import { allocateFifo } from "../inventory";
+import { Sale, SaleBatchAssignment, ActionResult, Settings } from "@/types";
 
-export async function getAllSales() {
-    const db = getDb();
-    const sales = db.prepare(`
-      SELECT s.*, c.name as customer_name 
-      FROM sales s
-      JOIN customers c ON s.customer_id = c.id
-      ORDER BY s.created_at DESC
-    `).all() as any[];
+function refreshSaleViews() { for (const path of ["/", "/stock", "/customers", "/transactions", "/add-sale", "/accounting", "/audit"]) revalidatePath(path); }
 
-    const assignments = db.prepare(`
-      SELECT sale_id, batch_id, grams_deducted 
-      FROM sale_batch_assignments
-    `).all() as any[];
-
-    for (const sale of sales) {
-        sale.batchesDeducted = assignments.filter(a => a.sale_id === sale.id);
-    }
-    return sales;
+export async function getAllSales(): Promise<Sale[]> {
+  await requirePermission("sales.read");
+  const sales = await query<Sale>(`SELECT s.*,c.name AS customer_name FROM sales s JOIN customers c ON c.id=s.customer_id ORDER BY s.created_at DESC`);
+  const assignments = await query<SaleBatchAssignment>(`SELECT sale_id,batch_id,grams_deducted,unit_cost FROM sale_batch_assignments ORDER BY id`);
+  return sales.rows.map((sale) => ({ ...sale, batchesDeducted: assignments.rows.filter((item) => item.sale_id === sale.id) }));
 }
 
-export async function createSale(formData: FormData) {
-    const customerId = parseInt(formData.get("customer_id") as string);
-    const gramsSold = parseFloat(formData.get("grams_sold") as string);
-    const discount = parseFloat(formData.get("discount") as string) || 0;
-    const amountReceived = parseFloat(formData.get("amount_received") as string) || 0;
-    const optionalBatchId = formData.get("batch_id") ? parseInt(formData.get("batch_id") as string) : null;
-    let comments = formData.get("comments") as string || null;
+export async function createSale(formData: FormData): Promise<ActionResult> {
+  const customerId = Number(formData.get("customer_id"));
+  const gramsSold = Number(formData.get("grams_sold"));
+  const discount = Number(formData.get("discount") || 0);
+  const amountReceived = Number(formData.get("amount_received") || 0);
+  const requestedBatchId = formData.get("batch_id") ? Number(formData.get("batch_id")) : null;
+  if (!Number.isInteger(customerId) || !Number.isFinite(gramsSold) || gramsSold <= 0 || discount < 0 || amountReceived < 0) return { error: "Invalid sale parameters" };
+  try {
+    const actor = await requirePermission("sales.create");
+    const saleId = await withTransaction(async (client) => {
+      const customer = await client.query("SELECT id FROM customers WHERE id=$1 FOR UPDATE", [customerId]);
+      if (!customer.rows[0]) throw new Error("Customer not found.");
+      const settingsResult = await client.query<Settings>("SELECT * FROM settings WHERE id=1");
+      const settings = settingsResult.rows[0] ?? { rate_per_gram: 1000, special_025_030: 250, special_050_060: 500 };
+      let grossAmount = Number(formData.get("gross_amount"));
+      if (!Number.isFinite(grossAmount)) grossAmount = gramsSold >= 0.25 && gramsSold <= 0.30 ? settings.special_025_030 : gramsSold >= 0.5 && gramsSold <= 0.6 ? settings.special_050_060 : gramsSold * settings.rate_per_gram;
+      grossAmount = Math.round(grossAmount * 100) / 100;
+      const finalAmount = Math.round(Math.max(0, grossAmount - discount) * 100) / 100;
+      if (discount > grossAmount || amountReceived > finalAmount) throw new Error("Discount or received amount exceeds the sale amount.");
+      const balance = Math.round((finalAmount - amountReceived) * 100) / 100;
 
-    if (!customerId || isNaN(gramsSold) || gramsSold <= 0) {
-        return { error: "Invalid sale parameters" };
-    }
+      const allocations = await allocateFifo(client, gramsSold, requestedBatchId);
 
-    try {
-        const db = getDb();
-        const user = await getSessionUser();
-        let adminName = user?.name || "A";
+      const rawComments = String(formData.get("comments") || "").trim();
+      const tag = `||ADMIN||${actor.name || "A"}||`;
+      const sale = await client.query<{ id: number }>(
+        `INSERT INTO sales(customer_id,grams_sold,gross_amount,discount,final_amount,amount_received,balance,comments,created_by) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING id`,
+        [customerId, gramsSold, grossAmount, discount, finalAmount, amountReceived, balance, rawComments ? `${rawComments} ${tag}` : tag, actor.id]);
+      const id = sale.rows[0].id;
+      for (const item of allocations) await client.query(`INSERT INTO sale_batch_assignments(sale_id,batch_id,grams_deducted,unit_cost) VALUES($1,$2,$3,$4)`, [id, item.batchId, item.grams, item.unitCost]);
+      if (balance > 0) await client.query("UPDATE customers SET total_loan=total_loan+$1,updated_at=now() WHERE id=$2", [balance, customerId]);
 
-        // Inject the Hidden Admin Tag into the Comments Payload
-        const adminTag = `||ADMIN||${adminName}||`;
-        if (comments) {
-            comments = comments + " " + adminTag;
-        } else {
-            comments = adminTag;
-        }
-
-        // Evaluate Tiered Pricing Structure
-        let grossAmount = 0;
-        if (gramsSold >= 0.25 && gramsSold <= 0.30) {
-            grossAmount = 250;
-        } else if (gramsSold >= 0.50 && gramsSold <= 0.60) {
-            grossAmount = 500;
-        } else {
-            const ratePerGram = 1000;
-            grossAmount = gramsSold * ratePerGram;
-        }
-
-        const finalAmount = grossAmount - discount;
-        const balance = finalAmount - amountReceived;
-
-        if (balance < 0) {
-            return { error: "Received amount cannot exceed final amount" };
-        }
-
-        // Begin robust transaction
-        const result = db.transaction(() => {
-            // 1. Check total stock
-            const stockRes = db.prepare("SELECT SUM(remaining_grams) as total FROM stock_batches").get() as { total: number | null };
-            const totalStock = stockRes.total || 0;
-            if (totalStock < gramsSold) {
-                throw new Error(`Insufficient stock. Only ${totalStock.toFixed(2)}g available.`);
-            }
-
-            // 2. FIFO Deduction Logic OR Manual Override
-            let batches = [];
-            if (optionalBatchId) {
-                const specificBatch = db.prepare("SELECT * FROM stock_batches WHERE id = ?").get(optionalBatchId) as any;
-                if (!specificBatch || specificBatch.remaining_grams < gramsSold) {
-                    throw new Error(`Insufficient stock in selected Batch #${optionalBatchId}. Has ${specificBatch?.remaining_grams || 0}g available, needs ${gramsSold}g.`);
-                }
-                batches = [specificBatch];
-            } else {
-                batches = db.prepare("SELECT * FROM stock_batches WHERE remaining_grams > 0 ORDER BY created_at ASC").all() as any[];
-            }
-
-            let remainingToDeduct = gramsSold;
-            const batchDeductions = [];
-
-            for (const batch of batches) {
-                if (remainingToDeduct <= 0) break;
-
-                const deductGrams = Math.min(batch.remaining_grams, remainingToDeduct);
-                remainingToDeduct -= deductGrams;
-
-                db.prepare("UPDATE stock_batches SET remaining_grams = remaining_grams - ? WHERE id = ?").run(deductGrams, batch.id);
-
-                batchDeductions.push({ batchId: batch.id, deducted: deductGrams });
-            }
-
-            if (remainingToDeduct > 0.001) { // Floating point safety margin
-                throw new Error("Critical Error: Stock mismatch during FIFO deduction. Database integrity prevents this sale.");
-            }
-
-            // 3. Create Sale Record
-            const saleInsert = db.prepare(`
-        INSERT INTO sales (customer_id, grams_sold, gross_amount, discount, final_amount, amount_received, balance, comments)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-      `);
-            const { lastInsertRowid: saleId } = saleInsert.run(
-                customerId, gramsSold, grossAmount, discount, finalAmount, amountReceived, balance, comments
-            );
-
-            // 4. Record the Specific Batch Assignments
-            const assignmentInsert = db.prepare("INSERT INTO sale_batch_assignments (sale_id, batch_id, grams_deducted) VALUES (?, ?, ?)");
-            for (const { batchId, deducted } of batchDeductions) {
-                assignmentInsert.run(saleId, batchId, deducted);
-            }
-
-            // 5. Update Customer Loan
-            if (balance > 0) {
-                db.prepare("UPDATE customers SET total_loan = total_loan + ? WHERE id = ?").run(balance, customerId);
-            }
-
-            return saleId;
-        })();
-
-        revalidatePath("/");
-        revalidatePath("/stock");
-        revalidatePath("/customers");
-        revalidatePath("/add-sale");
-
-        return { success: true, saleId: result };
-    } catch (err) {
-        return { error: (err as Error).message };
-    }
+      const journalIds: number[] = [];
+      if (finalAmount > 0) {
+        const lines: JournalLineInput[] = [];
+        if (amountReceived > 0) lines.push({ accountCode: "1000", debit: amountReceived, description: "Cash received" });
+        if (balance > 0) lines.push({ accountCode: "1100", debit: balance, description: "Customer receivable" });
+        lines.push({ accountCode: "4000", credit: finalAmount, description: "Sales revenue" });
+        journalIds.push(await postJournal(client, { transactionType: "SALE_REVENUE", referenceType: "sale", referenceId: id, description: `Sale #${id}`, createdBy: actor.id, lines }));
+      }
+      const cost = Math.round(allocations.reduce((sum, item) => sum + item.grams * item.unitCost, 0) * 100) / 100;
+      if (cost > 0) journalIds.push(await postJournal(client, { transactionType: "SALE_COGS", referenceType: "sale", referenceId: id, description: `Inventory cost for sale #${id}`, createdBy: actor.id,
+        lines: [{ accountCode: "5000", debit: cost, description: "Cost of goods sold" }, { accountCode: "1200", credit: cost, description: "Inventory consumed" }] }));
+      await writeAuditLog(client, { userId: actor.id, action: "sale.create", entityType: "sale", entityId: id, metadata: { customerId, gramsSold, finalAmount, allocationCount: allocations.length } });
+      await writeAuditLog(client, { userId: actor.id, action: "accounting.post", entityType: "sale", entityId: id, metadata: { journalIds } });
+      return id;
+    }, "SERIALIZABLE");
+    refreshSaleViews();
+    return { success: true, saleId };
+  } catch (error) { console.error("Sale creation failed:", error); return { error: error instanceof Error ? error.message : "Sale failed" }; }
 }
 
-export async function deleteSale(saleId: number) {
-    try {
-        const db = getDb();
-        const result = db.transaction(() => {
-            // 1. Fetch exact attributes of the sale to rollback
-            const sale = db.prepare("SELECT * FROM sales WHERE id = ?").get(saleId) as any;
-            if (!sale) throw new Error("Sale record not found");
-
-            // 2. Fetch the exact batch deductions to restore
-            const assignments = db.prepare("SELECT * FROM sale_batch_assignments WHERE sale_id = ?").all(saleId) as any[];
-
-            // 3. Restore each exact deducted fraction back to the respective stock batch
-            for (const assign of assignments) {
-                db.prepare("UPDATE stock_batches SET remaining_grams = remaining_grams + ? WHERE id = ?").run(assign.grams_deducted, assign.batch_id);
-            }
-
-            // 4. Reverse the customer's loan differential 
-            if (sale.balance > 0) {
-                db.prepare("UPDATE customers SET total_loan = total_loan - ? WHERE id = ?").run(sale.balance, sale.customer_id);
-            }
-
-            // 5. Erase linking junction assignments and then the physical sale metadata
-            db.prepare("DELETE FROM sale_batch_assignments WHERE sale_id = ?").run(saleId);
-            db.prepare("DELETE FROM sales WHERE id = ?").run(saleId);
-
-            return true;
-        })();
-
-        if (result) {
-            revalidatePath("/");
-            revalidatePath("/stock");
-            revalidatePath("/customers");
-            return { success: true };
-        }
-    } catch (e: any) {
-        console.error("Delete Sale rollback failed:", e.message);
-        return { error: e.message };
-    }
-    return { error: "Unknown error deleting sale" };
+export async function deleteSale(saleId: number): Promise<ActionResult> {
+  try {
+    const actor = await requirePermission("sales.reverse");
+    await withTransaction(async (client) => {
+      const sale = (await client.query<Sale>("SELECT * FROM sales WHERE id=$1 FOR UPDATE", [saleId])).rows[0];
+      if (!sale) throw new Error("Sale record not found");
+      if (sale.status === "REVERSED") throw new Error("Sale has already been reversed.");
+      const assignments = await client.query<SaleBatchAssignment>("SELECT * FROM sale_batch_assignments WHERE sale_id=$1 ORDER BY id FOR UPDATE", [saleId]);
+      for (const item of assignments.rows) await client.query("UPDATE stock_batches SET remaining_grams=remaining_grams+$1,status='OPEN',updated_at=now() WHERE id=$2", [item.grams_deducted, item.batch_id]);
+      if (sale.balance > 0) await client.query("UPDATE customers SET total_loan=GREATEST(0,total_loan-$1),updated_at=now() WHERE id=$2", [sale.balance, sale.customer_id]);
+      const reversalJournalIds = await reverseJournals(client, "sale", saleId, actor.id, `Reversal of sale #${saleId}`);
+      await client.query("UPDATE sales SET status='REVERSED',reversed_at=now(),reversed_by=$2 WHERE id=$1", [saleId, actor.id]);
+      await writeAuditLog(client, { userId: actor.id, action: "sale.reverse", entityType: "sale", entityId: saleId, metadata: { reversalJournalIds } });
+      await writeAuditLog(client, { userId: actor.id, action: "accounting.reverse", entityType: "sale", entityId: saleId, metadata: { reversalJournalIds } });
+    });
+    refreshSaleViews();
+    return { success: true };
+  } catch (error) { return { error: error instanceof Error ? error.message : "Sale reversal failed" }; }
 }
 
-export async function updateSale(saleId: number, formData: FormData) {
-    const rawGramsSold = formData.get("grams_sold") as string | null;
-    let newGramsSold = rawGramsSold ? parseFloat(rawGramsSold) : null;
-    const rawDiscount = formData.get("discount") as string | null;
-    const newDiscount = rawDiscount !== null ? parseFloat(rawDiscount) : null;
-    const rawAmountReceived = formData.get("amount_received") as string | null;
-    const newAmountReceived = rawAmountReceived !== null ? parseFloat(rawAmountReceived) : null;
-
-    try {
-        const db = getDb();
-
-        const result = db.transaction(() => {
-            // Retrieve Original Sale State
-            const origSale = db.prepare("SELECT * FROM sales WHERE id = ?").get(saleId) as any;
-            if (!origSale) throw new Error("Sale not found.");
-
-            // Did the actual physical product amount change?
-            if (newGramsSold !== null && newGramsSold !== origSale.grams_sold) {
-                // Changing the physical grams disrupts the original FIFO math entirely.
-                // Action: Rollback this sale natively, then re-create it immediately with the new param load.
-
-                // Copy all missing properties from Original if not provided via FormData patching
-                const passForm = new FormData();
-                passForm.append("customer_id", origSale.customer_id.toString());
-                passForm.append("grams_sold", newGramsSold.toString());
-                passForm.append("discount", (newDiscount !== null ? newDiscount : origSale.discount).toString());
-                passForm.append("amount_received", (newAmountReceived !== null ? newAmountReceived : origSale.amount_received).toString());
-
-                // Rollback manual call logic:
-                const assignments = db.prepare("SELECT * FROM sale_batch_assignments WHERE sale_id = ?").all(saleId) as any[];
-                for (const assign of assignments) {
-                    db.prepare("UPDATE stock_batches SET remaining_grams = remaining_grams + ? WHERE id = ?").run(assign.grams_deducted, assign.batch_id);
-                }
-                if (origSale.balance > 0) {
-                    db.prepare("UPDATE customers SET total_loan = total_loan - ? WHERE id = ?").run(origSale.balance, origSale.customer_id);
-                }
-                db.prepare("DELETE FROM sale_batch_assignments WHERE sale_id = ?").run(saleId);
-                db.prepare("DELETE FROM sales WHERE id = ?").run(saleId);
-
-                // Run original `createSale` inside this transaction block! It throws exact Errors natively back up.
-                // NOTE: We cannot call createSale(passForm) server action strictly inside transaction safely.
-                throw new Error("Changing physical gram amount currently requires deleting the sale and generating a new one to preserve strict FIFO tracking architecture.");
-            }
-
-            // Only adjusting Financials (Discount, Amount Received). FIFO untouched. No physical changes.
-            const targetDiscount = newDiscount !== null ? newDiscount : origSale.discount;
-            const targetReceived = newAmountReceived !== null ? newAmountReceived : origSale.amount_received;
-
-            let targetGross = 0;
-            if (origSale.grams_sold >= 0.25 && origSale.grams_sold <= 0.30) {
-                targetGross = 250;
-            } else if (origSale.grams_sold >= 0.50 && origSale.grams_sold <= 0.60) {
-                targetGross = 500;
-            } else {
-                const ratePerGram = 1000;
-                targetGross = origSale.grams_sold * ratePerGram;
-            }
-
-            const targetFinal = targetGross - targetDiscount;
-            const targetBalance = targetFinal - targetReceived;
-
-            if (targetBalance < 0) throw new Error("Amount Received cannot exceed the final evaluated amount after discounts.");
-
-            // Patch difference mathematically back into loan accounts
-            const originalLoanAmount = origSale.balance > 0 ? origSale.balance : 0;
-            const newLoanAmount = targetBalance > 0 ? targetBalance : 0;
-            const loanDifferential = newLoanAmount - originalLoanAmount; // e.g., 500 (new) - 100 (old) = +400 to loan account. 
-
-            if (loanDifferential !== 0) {
-                db.prepare("UPDATE customers SET total_loan = total_loan + ? WHERE id = ?").run(loanDifferential, origSale.customer_id);
-            }
-
-            // Finally, overwrite the sale stats itself
-            db.prepare(`
-                UPDATE sales 
-                SET discount = ?, final_amount = ?, amount_received = ?, balance = ? 
-                WHERE id = ?
-            `).run(targetDiscount, targetFinal, targetReceived, targetBalance, saleId);
-
-            return true;
-        })();
-
-        if (result) {
-            revalidatePath("/");
-            revalidatePath("/customers");
-            return { success: true };
-        }
-    } catch (e: any) {
-        console.error("Sale update failed:", e.message);
-        return { error: e.message };
-    }
-    return { error: "Unknown error patching sale." };
+export async function updateSale(saleId: number, formData: FormData): Promise<ActionResult> {
+  const newGrams = formData.get("grams_sold") ? Number(formData.get("grams_sold")) : null;
+  try {
+    const actor = await requirePermission("sales.create");
+    await withTransaction(async (client) => {
+      const sale = (await client.query<Sale>("SELECT * FROM sales WHERE id=$1 FOR UPDATE", [saleId])).rows[0];
+      if (!sale || sale.status === "REVERSED") throw new Error("Active sale not found.");
+      if (newGrams !== null && newGrams !== sale.grams_sold) throw new Error("Changing grams requires reversing the sale and creating a new one so FIFO history remains exact.");
+      const discount = formData.get("discount") !== null ? Number(formData.get("discount")) : sale.discount;
+      const received = formData.get("amount_received") !== null ? Number(formData.get("amount_received")) : sale.amount_received;
+      const finalAmount = Math.round((sale.gross_amount - discount) * 100) / 100;
+      if (discount < 0 || finalAmount < 0 || received < 0 || received > finalAmount) throw new Error("Invalid discount or amount received.");
+      const balance = Math.round((finalAmount - received) * 100) / 100;
+      const lines: JournalLineInput[] = [];
+      const addDelta = (accountCode: string, delta: number, natural: "debit" | "credit") => {
+        const value = Math.round(Math.abs(delta) * 100) / 100;
+        if (value) lines.push({ accountCode, [delta > 0 ? natural : natural === "debit" ? "credit" : "debit"]: value });
+      };
+      addDelta("1000", received - sale.amount_received, "debit"); addDelta("1100", balance - sale.balance, "debit"); addDelta("4000", finalAmount - sale.final_amount, "credit");
+      if (lines.length) await postJournal(client, { transactionType: "SALE_ADJUSTMENT", referenceType: "sale", referenceId: saleId, description: `Financial adjustment for sale #${saleId}`, createdBy: actor.id, lines });
+      await client.query("UPDATE customers SET total_loan=GREATEST(0,total_loan+$1),updated_at=now() WHERE id=$2", [balance - sale.balance, sale.customer_id]);
+      await client.query("UPDATE sales SET discount=$1,final_amount=$2,amount_received=$3,balance=$4 WHERE id=$5", [discount, finalAmount, received, balance, saleId]);
+      await writeAuditLog(client, { userId: actor.id, action: "sale.update", entityType: "sale", entityId: saleId, metadata: { previous: { discount: sale.discount, received: sale.amount_received }, current: { discount, received } } });
+    });
+    refreshSaleViews();
+    return { success: true };
+  } catch (error) { return { error: error instanceof Error ? error.message : "Sale update failed" }; }
 }

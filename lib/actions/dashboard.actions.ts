@@ -1,61 +1,21 @@
 "use server";
 
-import { getDb } from "../db";
+import { query } from "../db";
+import { requireAuthenticatedUser } from "../auth/authorization";
+import { DashboardMetrics, Sale, Customer } from "@/types";
 
-export async function getDashboardMetrics() {
-    try {
-        const db = getDb();
-
-        // Total Stock Remaining
-        const stockRes = db.prepare("SELECT SUM(remaining_grams) as total FROM stock_batches").get() as { total: number | null };
-        const totalStock = stockRes.total || 0;
-
-        // Sales Today
-        const salesTodayRes = db.prepare(`
-      SELECT COUNT(*) as count, SUM(grams_sold) as grams, SUM(final_amount) as amount 
-      FROM sales 
-      WHERE date(created_at) = date('now')
-    `).get() as { count: number, grams: number | null, amount: number | null };
-
-        // Total Loan Pending
-        const loanRes = db.prepare("SELECT SUM(total_loan + old_loan) as total FROM customers").get() as { total: number | null };
-
-        // Total Profit (100% of Sales gross as requested)
-        const profitRes = db.prepare("SELECT SUM(final_amount) as total_final FROM sales").get() as { total_final: number | null };
-        const totalProfit = profitRes.total_final || 0;
-
-        // Recent Transactions
-        const recentSales = db.prepare(`
-      SELECT s.*, c.name as customer_name 
-      FROM sales s
-      JOIN customers c ON s.customer_id = c.id
-      ORDER BY s.created_at DESC
-      LIMIT 6
-    `).all();
-
-        // Customers with active loans for Modal Display
-        const customersWithLoans = db.prepare(`
-      SELECT id, name, total_loan, old_loan, phone
-      FROM customers
-      WHERE (total_loan + old_loan) > 0
-      ORDER BY (total_loan + old_loan) DESC
-    `).all();
-
-        return {
-            totalStock,
-            salesToday: {
-                count: salesTodayRes.count,
-                grams: salesTodayRes.grams || 0,
-                amount: salesTodayRes.amount || 0
-            },
-            totalLoan: loanRes.total || 0,
-            totalProfit,
-            recentSales: recentSales as any[],
-            customersWithLoans: customersWithLoans as any[]
-        };
-    } catch (err) {
-        return {
-            error: "Could not initialize DB or fetch metrics. Please make sure tables exist."
-        };
-    }
+export async function getDashboardMetrics(): Promise<DashboardMetrics | { error: string }> {
+  try {
+    await requireAuthenticatedUser();
+    const [stock, today, loans, revenue, recent, debtors] = await Promise.all([
+      query<{ total: number }>("SELECT COALESCE(sum(remaining_grams),0) AS total FROM stock_batches WHERE status='OPEN'"),
+      query<{ count: number; grams: number; amount: number }>(`SELECT count(*)::int AS count,COALESCE(sum(grams_sold),0) AS grams,COALESCE(sum(final_amount),0) AS amount FROM sales WHERE status='POSTED' AND created_at>=CURRENT_DATE`),
+      query<{ total: number }>("SELECT COALESCE(sum(total_loan+old_loan),0) AS total FROM customers"),
+      query<{ total: number }>("SELECT COALESCE(sum(final_amount),0) AS total FROM sales WHERE status='POSTED'"),
+      query<Sale>(`SELECT s.*,c.name AS customer_name FROM sales s JOIN customers c ON c.id=s.customer_id WHERE s.status='POSTED' ORDER BY s.created_at DESC LIMIT 6`),
+      query<Customer>(`SELECT * FROM customers WHERE total_loan+old_loan>0 ORDER BY total_loan+old_loan DESC`),
+    ]);
+    return { totalStock: stock.rows[0].total, salesToday: today.rows[0], totalLoan: loans.rows[0].total,
+      totalProfit: revenue.rows[0].total, recentSales: recent.rows, customersWithLoans: debtors.rows };
+  } catch { return { error: "Could not fetch dashboard metrics." }; }
 }

@@ -1,15 +1,17 @@
 "use client";
 
 import { useState } from "react";
-import { Trash2 } from "lucide-react";
+import { RotateCcw } from "lucide-react";
 import { deleteSale } from "@/lib/actions/sale.actions";
 import { showToast } from "@/components/ToastProvider";
+import { useAccess } from "@/components/AccessProvider";
 
 export function DeleteSaleBtn({ id }: { id: number }) {
+    const { hasPermission } = useAccess();
     const [loading, setLoading] = useState(false);
 
     const handleDelete = async () => {
-        if (!confirm("CRITICAL WARNING: Are you absolutely sure?\n\nDeleting this sale will automatically RESTORE its inventory back to the correct batches and REMOVE the balance from the customer's total pending loan.\n\nThis cannot be undone!")) {
+        if (!confirm("Reverse this sale?\n\nThis restores the exact stock batches, updates the customer balance, and posts immutable reversal journals.")) {
             return;
         }
 
@@ -17,36 +19,24 @@ export function DeleteSaleBtn({ id }: { id: number }) {
         const res = await deleteSale(id);
 
         if (res.error) {
-            showToast("Failed to delete sale: " + res.error, "error");
+            showToast("Failed to reverse sale: " + res.error, "error");
         } else {
-            showToast("Sale natively rollback successful! Inventory restored.", "success");
+            showToast("Sale reversed successfully. Stock and accounting were restored.", "success");
         }
         setLoading(false);
     };
 
+    if (!hasPermission("sales.reverse")) return null;
     return (
         <button
             type="button"
             onClick={handleDelete}
             disabled={loading}
-            title="Rollback Sale"
-            style={{
-                background: 'rgba(239, 68, 68, 0.15)',
-                color: 'var(--error)',
-                border: '1px solid rgba(239, 68, 68, 0.3)',
-                padding: '0.4rem',
-                borderRadius: '6px',
-                cursor: loading ? 'not-allowed' : 'pointer',
-                opacity: loading ? 0.5 : 1,
-                display: 'inline-flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                transition: 'all 0.2s',
-            }}
-            onMouseOver={(e) => { if (!loading) e.currentTarget.style.background = 'rgba(239, 68, 68, 0.3)' }}
-            onMouseOut={(e) => { if (!loading) e.currentTarget.style.background = 'rgba(239, 68, 68, 0.15)' }}
+            title="Reverse Sale"
+            className="action-icon-btn danger"
+            style={{ opacity: loading ? 0.5 : 1, cursor: loading ? 'not-allowed' : 'pointer' }}
         >
-            <Trash2 size={16} />
+            <RotateCcw size={15} />
         </button>
     );
 }

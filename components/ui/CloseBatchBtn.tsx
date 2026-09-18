@@ -1,12 +1,14 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { createPortal } from "react-dom";
 import { PowerOff } from "lucide-react";
 import { closeStockBatch } from "@/lib/actions/stock.actions";
 import { showToast } from "@/components/ToastProvider";
+import { useAccess } from "@/components/AccessProvider";
 
 export function CloseBatchBtn({ id }: { id: number }) {
+    const { hasPermission } = useAccess();
     const [isOpen, setIsOpen] = useState(false);
     const [submitting, setSubmitting] = useState(false);
 
@@ -18,32 +20,43 @@ export function CloseBatchBtn({ id }: { id: number }) {
         if (res.error) {
             showToast(res.error, "error");
         } else {
-            showToast("Batch forcefully exhausted.", "success");
+            showToast("Batch finalized and marked as depleted.", "success");
             setIsOpen(false);
         }
     };
 
+    if (!hasPermission("inventory.update")) return null;
     return (
         <>
-            <button className="btn btn-secondary" style={{ padding: '0.5rem', color: 'var(--error)', borderColor: 'rgba(239, 68, 68, 0.2)' }} onClick={() => setIsOpen(true)} title="Force End Batch">
-                <PowerOff size={16} />
+            <button
+                type="button"
+                className="action-icon-btn danger"
+                onClick={() => setIsOpen(true)}
+                title="Force End Batch"
+            >
+                <PowerOff size={15} />
             </button>
 
             {isOpen && typeof document !== 'undefined' && createPortal(
-                <div className="modal-overlay">
-                    <div className="modal-content glass-card animate-fade-in" style={{ padding: '2rem', maxWidth: '400px', width: '90%' }}>
-                        <h3 className="text-error" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: 0 }}>
-                            <PowerOff size={24} /> Force End Batch
+                <div className="modal-overlay" onClick={() => setIsOpen(false)}>
+                    <div className="modal-card animate-fade-in" style={{ maxWidth: '420px' }} onClick={(e) => e.stopPropagation()}>
+                        <h3 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: 0, color: 'var(--danger)', fontSize: '1.25rem' }}>
+                            <PowerOff size={20} /> Force End Batch
                         </h3>
-                        <p style={{ color: 'var(--text-muted)' }}>
+                        <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', lineHeight: 1.5, marginTop: '0.5rem' }}>
                             Are you sure you want to prematurely end this batch? This discards its remaining inventory and forces the FIFO system to advance.
                         </p>
 
-                        <div style={{ display: 'flex', gap: '1rem', marginTop: '1.5rem' }}>
+                        <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1.75rem' }}>
                             <button className="btn btn-secondary" style={{ flex: 1 }} onClick={() => setIsOpen(false)} disabled={submitting}>
                                 Cancel
                             </button>
-                            <button className="btn btn-primary" style={{ flex: 1, background: 'var(--error)', color: 'white', borderColor: 'var(--error)' }} onClick={handleClose} disabled={submitting}>
+                            <button
+                                className="btn"
+                                style={{ flex: 1, background: 'var(--danger)', color: '#FFFFFF' }}
+                                onClick={handleClose}
+                                disabled={submitting}
+                            >
                                 {submitting ? "Processing..." : "End Batch"}
                             </button>
                         </div>

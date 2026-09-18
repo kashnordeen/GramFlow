@@ -4,12 +4,14 @@ import { useState } from "react";
 import { Trash2 } from "lucide-react";
 import { deleteStockBatch } from "@/lib/actions/stock.actions";
 import { showToast } from "@/components/ToastProvider";
+import { useAccess } from "@/components/AccessProvider";
 
 export function DeleteBatchBtn({ id }: { id: number }) {
+    const { hasPermission } = useAccess();
     const [loading, setLoading] = useState(false);
 
     const handleDelete = async () => {
-        if (!confirm("Are you sure you want to permanently erase this complete Stock Batch entry?")) {
+        if (!confirm("Are you sure you want to delete this unused stock batch?")) {
             return;
         }
 
@@ -17,36 +19,24 @@ export function DeleteBatchBtn({ id }: { id: number }) {
         const res = await deleteStockBatch(id);
 
         if (res.error) {
-            showToast(res.error, "error");
+            showToast("Failed to delete batch: " + res.error, "error");
         } else {
-            showToast("Stock batch permanently removed.", "success");
+            showToast("Stock batch removed from vault.", "success");
         }
         setLoading(false);
     };
 
+    if (!hasPermission("inventory.delete")) return null;
     return (
         <button
             type="button"
             onClick={handleDelete}
             disabled={loading}
-            title="Erase Batch"
-            style={{
-                background: 'rgba(239, 68, 68, 0.15)',
-                color: 'var(--error)',
-                border: '1px solid rgba(239, 68, 68, 0.3)',
-                padding: '0.4rem',
-                borderRadius: '6px',
-                cursor: loading ? 'not-allowed' : 'pointer',
-                opacity: loading ? 0.5 : 1,
-                display: 'inline-flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                transition: 'all 0.2s',
-            }}
-            onMouseOver={(e) => { if (!loading) e.currentTarget.style.background = 'rgba(239, 68, 68, 0.3)' }}
-            onMouseOut={(e) => { if (!loading) e.currentTarget.style.background = 'rgba(239, 68, 68, 0.15)' }}
+            title="Delete Stock Batch"
+            className="action-icon-btn danger"
+            style={{ opacity: loading ? 0.5 : 1, cursor: loading ? 'not-allowed' : 'pointer' }}
         >
-            <Trash2 size={16} />
+            <Trash2 size={15} />
         </button>
     );
 }

@@ -4,12 +4,14 @@ import { useState } from "react";
 import { Trash2 } from "lucide-react";
 import { deleteCustomer } from "@/lib/actions/customer.actions";
 import { showToast } from "@/components/ToastProvider";
+import { useAccess } from "@/components/AccessProvider";
 
 export function DeleteCustomerBtn({ id }: { id: number }) {
+    const { hasPermission } = useAccess();
     const [loading, setLoading] = useState(false);
 
     const handleDelete = async () => {
-        if (!confirm("Are you sure you want to permanently delete this customer AND void all their historical sales, records, and loans instantly?")) {
+        if (!confirm("Are you sure you want to delete this customer? Deducted stock will be restored to inventory.")) {
             return;
         }
 
@@ -19,34 +21,22 @@ export function DeleteCustomerBtn({ id }: { id: number }) {
         if (res.error) {
             showToast(res.error, "error");
         } else {
-            showToast("Customer identity completely expunged.", "success");
+            showToast("Customer record deleted and inventory restored.", "success");
         }
         setLoading(false);
     };
 
+    if (!hasPermission("customers.delete")) return null;
     return (
         <button
             type="button"
             onClick={handleDelete}
             disabled={loading}
-            title="Wipe Customer Record"
-            style={{
-                background: 'rgba(239, 68, 68, 0.15)',
-                color: 'var(--error)',
-                border: '1px solid rgba(239, 68, 68, 0.3)',
-                padding: '0.4rem',
-                borderRadius: '6px',
-                cursor: loading ? 'not-allowed' : 'pointer',
-                opacity: loading ? 0.5 : 1,
-                display: 'inline-flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                transition: 'all 0.2s',
-            }}
-            onMouseOver={(e) => { if (!loading) e.currentTarget.style.background = 'rgba(239, 68, 68, 0.3)' }}
-            onMouseOut={(e) => { if (!loading) e.currentTarget.style.background = 'rgba(239, 68, 68, 0.15)' }}
+            title="Delete Customer Profile"
+            className="action-icon-btn danger"
+            style={{ opacity: loading ? 0.5 : 1, cursor: loading ? 'not-allowed' : 'pointer' }}
         >
-            <Trash2 size={16} />
+            <Trash2 size={15} />
         </button>
     );
 }

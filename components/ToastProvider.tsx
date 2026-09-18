@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
-import { CheckCircle, AlertCircle } from "lucide-react";
+import { CheckCircle2, AlertCircle } from "lucide-react";
 
 export type Toast = { id: number; message: string; type: "success" | "error" };
 let toastCount = 0;
@@ -24,11 +24,40 @@ export function ToastProvider() {
     }, []);
 
     return (
-        <div style={{ position: "fixed", bottom: "1.5rem", right: "1.5rem", zIndex: 9999, display: "flex", flexDirection: "column", gap: "0.5rem" }}>
+        <div
+            style={{
+                position: "fixed",
+                top: "1.5rem",
+                right: "1.5rem",
+                zIndex: 9999,
+                display: "flex",
+                flexDirection: "column",
+                gap: "0.65rem",
+                maxWidth: "380px",
+                width: "calc(100% - 3rem)",
+                pointerEvents: "none"
+            }}
+        >
             {toasts.map((toast) => (
-                <div key={toast.id} className="glass-card animate-fade-in" style={{ padding: "1rem 1.5rem", display: "flex", alignItems: "center", gap: "0.75rem", boxShadow: "0 8px 30px rgba(0,0,0,0.5)", borderLeft: "4px solid var(--" + toast.type + ")" }}>
-                    {toast.type === 'success' ? <CheckCircle className="text-success" size={20} /> : <AlertCircle className="text-error" size={20} />}
-                    <span style={{ fontWeight: 500 }}>{toast.message}</span>
+                <div
+                    key={toast.id}
+                    className="card-dark animate-fade-in"
+                    style={{
+                        padding: "0.85rem 1.25rem",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "0.75rem",
+                        boxShadow: "var(--shadow-dark)",
+                        borderLeft: toast.type === 'success' ? "4px solid var(--accent)" : "4px solid var(--danger)",
+                        pointerEvents: "auto"
+                    }}
+                >
+                    {toast.type === 'success' ? (
+                        <CheckCircle2 size={20} style={{ color: "var(--accent)", flexShrink: 0 }} />
+                    ) : (
+                        <AlertCircle size={20} style={{ color: "var(--danger)", flexShrink: 0 }} />
+                    )}
+                    <span style={{ fontWeight: 500, fontSize: "0.875rem", color: "#FFFFFF" }}>{toast.message}</span>
                 </div>
             ))}
         </div>

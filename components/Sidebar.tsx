@@ -2,12 +2,24 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, ShoppingCart, Users, Package, Menu, X, Database } from "lucide-react";
+import {
+    LayoutDashboard,
+    ShoppingCart,
+    Database,
+    Users,
+    Package,
+    Settings,
+    Plus,
+    Sparkles,
+    ChevronLeft,
+    Shield,
+    BookOpen,
+    ScrollText
+} from "lucide-react";
 import { useState, useEffect } from "react";
 
-export function Sidebar() {
+export function Sidebar({ permissions }: { permissions: string[] }) {
     const pathname = usePathname();
-    const [isOpen, setIsOpen] = useState(false);
     const [isCollapsed, setIsCollapsed] = useState(false);
 
     useEffect(() => {
@@ -20,71 +32,108 @@ export function Sidebar() {
 
     const links = [
         { name: "Dashboard", href: "/", icon: LayoutDashboard },
-        { name: "Add Sale", href: "/add-sale", icon: ShoppingCart },
-        { name: "Transactions", href: "/transactions", icon: Database },
-        { name: "Customers", href: "/customers", icon: Users },
-        { name: "Stock", href: "/stock", icon: Package },
-    ];
+        { name: "Add Sale", href: "/add-sale", icon: ShoppingCart, permission: "sales.create" },
+        { name: "Transactions", href: "/transactions", icon: Database, permission: "sales.read" },
+        { name: "Customers", href: "/customers", icon: Users, permission: "customers.read" },
+        { name: "Stock Vault", href: "/stock", icon: Package, permission: "inventory.read" },
+        { name: "Settings", href: "/settings", icon: Settings, permission: "settings.manage" },
+        { name: "Accounting", href: "/accounting", icon: BookOpen, permission: "accounting.read" },
+        { name: "Audit Log", href: "/audit", icon: ScrollText, permission: "audit.read" },
+        { name: "Access Control", href: "/admin/roles", icon: Shield, permission: "roles.read" },
+    ].filter((link) => !link.permission || permissions.includes(link.permission));
 
     return (
         <>
-            <button
-                className="btn btn-secondary glass-panel mobile-menu-btn"
-                onClick={() => setIsOpen(!isOpen)}
-            >
-                {isOpen ? <X size={24} /> : <Menu size={24} />}
-            </button>
-
-            <div className={`sidebar ${isOpen ? 'open' : ''}`}>
-                <div style={{ padding: '0 0.25rem', marginBottom: '2.5rem', marginTop: '1rem', display: 'flex', alignItems: 'flex-start', gap: '0.75rem', overflow: 'hidden' }}>
+            {/* Desktop / Tablet Sidebar */}
+            <aside className="sidebar">
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.75rem' }}>
+                    <Link href="/" className="sidebar-brand" style={{ margin: 0, padding: 0 }}>
+                        <div className="sidebar-brand-logo">
+                            <img src="/logo.png" alt="GramFlow" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                        </div>
+                        <div className="sidebar-brand-text">
+                            <h2>GramFlow</h2>
+                            <p>Inventory & Loans</p>
+                        </div>
+                    </Link>
                     <button
                         onClick={() => setIsCollapsed(!isCollapsed)}
-                        className="desktop-toggle-btn"
-                        style={{ background: 'transparent', border: 'none', color: 'var(--text-main)', cursor: 'pointer', padding: '0.4rem', display: 'flex', marginTop: '1px' }}
+                        className="sidebar-text"
+                        style={{
+                            background: 'transparent',
+                            border: 'none',
+                            color: 'var(--text-muted)',
+                            cursor: 'pointer',
+                            padding: '0.4rem',
+                            display: 'flex',
+                            alignItems: 'center',
+                            borderRadius: 'var(--radius-sm)'
+                        }}
+                        title={isCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
                     >
-                        <Menu size={24} className="text-accent" />
+                        <ChevronLeft size={18} style={{ transform: isCollapsed ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }} />
                     </button>
-                    <div className="sidebar-text" style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-                        <h2 style={{ color: 'var(--text-main)', margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '1.4rem', whiteSpace: 'nowrap' }}>
-                            <img src="/logo.png" alt="GramFlow" style={{ width: '32px', height: '32px', borderRadius: '6px', objectFit: 'cover' }} />
-                            GramFlow
-                        </h2>
-                        <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '0.2rem', whiteSpace: 'nowrap' }}>Inventory & Loans</p>
-                    </div>
                 </div>
 
-                <nav style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                <nav className="sidebar-nav">
                     {links.map((link) => {
                         const Icon = link.icon;
                         const isActive = pathname === link.href;
                         return (
-                            <Link href={link.href} key={link.href} className={`nav-link ${isActive ? 'active' : ''}`} onClick={() => setIsOpen(false)}>
+                            <Link
+                                href={link.href}
+                                key={link.href}
+                                className={`nav-link ${isActive ? 'active' : ''}`}
+                            >
                                 <Icon size={20} strokeWidth={isActive ? 2.5 : 2} style={{ flexShrink: 0 }} />
                                 <span className="sidebar-text">{link.name}</span>
                             </Link>
-                        )
+                        );
                     })}
                 </nav>
 
+                {/* Stay in Flow Promo Card */}
+                <div className="sidebar-footer-card">
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.4rem' }}>
+                        <Sparkles size={16} style={{ color: 'var(--accent)' }} />
+                        <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--accent)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Stay in Flow</span>
+                    </div>
+                    <p style={{ fontSize: '0.78rem', color: 'rgba(255, 255, 255, 0.7)', margin: 0, lineHeight: 1.4 }}>
+                        FIFO inventory tracking active. Real-time batch lineages secured.
+                    </p>
+                </div>
 
-
-                <div className="sidebar-text" style={{ padding: '1rem', fontSize: '0.75rem', color: 'var(--text-muted)', borderTop: '1px solid var(--card-border)', whiteSpace: 'nowrap' }}>
+                <div className="sidebar-text" style={{ paddingTop: '1rem', marginTop: '0.75rem', fontSize: '0.72rem', color: 'var(--text-muted)', borderTop: '1px solid var(--border-subtle)', textAlign: 'center' }}>
                     &copy; 2026 GramFlow System
                 </div>
-            </div>
+            </aside>
 
-            {/* Mobile Bottom Navigation */}
+            {/* Mobile Bottom Navigation (< 768px) */}
             <nav className="mobile-bottom-nav">
-                {links.map((link) => {
-                    const Icon = link.icon;
-                    const isActive = pathname === link.href;
-                    return (
-                        <Link href={link.href} key={link.href} className={`mobile-bottom-nav-item ${isActive ? 'active' : ''}`}>
-                            <Icon size={24} strokeWidth={isActive ? 2.5 : 2} />
-                            <span>{link.name}</span>
-                        </Link>
-                    )
-                })}
+                <Link href="/" className={`mobile-nav-item ${pathname === '/' ? 'active' : ''}`}>
+                    <LayoutDashboard size={22} strokeWidth={pathname === '/' ? 2.5 : 2} />
+                    <span>Dashboard</span>
+                </Link>
+
+                <Link href="/transactions" className={`mobile-nav-item ${pathname === '/transactions' ? 'active' : ''}`}>
+                    <Database size={22} strokeWidth={pathname === '/transactions' ? 2.5 : 2} />
+                    <span>History</span>
+                </Link>
+
+                {/* Floating Plus CTA */}
+                <Link href="/add-sale" className="mobile-floating-plus-btn" aria-label="Record Sale">
+                    <Plus size={28} strokeWidth={3} />
+                </Link>
+
+                <Link href="/customers" className={`mobile-nav-item ${pathname === '/customers' ? 'active' : ''}`}>
+                    <Users size={22} strokeWidth={pathname === '/customers' ? 2.5 : 2} />
+                    <span>Customers</span>
+                </Link>
+
+                <Link href="/stock" className={`mobile-nav-item ${pathname === '/stock' ? 'active' : ''}`}>
+                    <Package size={22} strokeWidth={pathname === '/stock' ? 2.5 : 2} />
+                    <span>Stock</span>
+                </Link>
             </nav>
         </>
     );

@@ -1,23 +1,16 @@
 "use client";
 
-import { Users, X } from "lucide-react";
+import { Users, X, ArrowUpRight } from "lucide-react";
 import { AnimatedCounter } from "@/components/ui/AnimatedCounter";
 import { PrivacyMask } from "@/components/ui/PrivacyMask";
 import { PrivacyToggleButton } from "@/components/ui/PrivacyToggleButton";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { createPortal } from "react-dom";
-
-interface CustomerWithLoan {
-    id: number;
-    name: string;
-    total_loan: number;
-    old_loan: number;
-    phone: string | null;
-}
+import { Customer } from "@/types";
 
 interface PendingLoansCardProps {
     totalLoan: number;
-    customers: CustomerWithLoan[];
+    customers: Customer[];
 }
 
 export function PendingLoansCard({ totalLoan, customers }: PendingLoansCardProps) {
@@ -26,69 +19,120 @@ export function PendingLoansCard({ totalLoan, customers }: PendingLoansCardProps
     return (
         <>
             <div
-                className="glass-card"
-                style={{ cursor: 'pointer', position: 'relative' }}
+                className="card-light bg-halftone"
+                style={{
+                    height: '100%',
+                    minHeight: '190px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    justifyContent: 'space-between',
+                    cursor: 'pointer',
+                    position: 'relative'
+                }}
                 onClick={() => setIsOpen(true)}
             >
-                {/* Hover Glow Effect Indicator */}
-                <div style={{ position: 'absolute', inset: 0, borderRadius: 'var(--radius-md)', transition: 'var(--transition)', boxShadow: 'inset 0 0 0 1px transparent' }}
-                    onMouseEnter={(e) => e.currentTarget.style.boxShadow = 'inset 0 0 0 1px rgba(227, 255, 55, 0.3)'}
-                    onMouseLeave={(e) => e.currentTarget.style.boxShadow = 'inset 0 0 0 1px transparent'}
-                />
-
-                <div className="flex-between" style={{ marginBottom: '1rem', position: 'relative', zIndex: 2 }}>
-                    <span className="metric-label" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                        Pending Loans <PrivacyToggleButton />
-                    </span>
-                    <div style={{ background: 'rgba(255,255,255,0.05)', padding: '0.6rem', borderRadius: '10px' }}>
-                        <Users size={22} className="text-accent" />
+                <div>
+                    <div className="flex-between" style={{ marginBottom: '0.5rem' }}>
+                        <span className="kpi-label">
+                            <Users size={16} style={{ color: 'var(--text-primary)' }} /> Pending Loans
+                        </span>
+                        <PrivacyToggleButton />
+                    </div>
+                    <div className="kpi-value">
+                        <span style={{ fontSize: '1.4rem', marginRight: '2px', color: 'var(--text-muted)' }}>₹</span>
+                        <PrivacyMask>
+                            <AnimatedCounter value={totalLoan} />
+                        </PrivacyMask>
                     </div>
                 </div>
-                <div className="metric-value" style={{ position: 'relative', zIndex: 2 }}>
-                    <span className="metric-currency">₹</span>
-                    <PrivacyMask>
-                        <AnimatedCounter value={totalLoan} />
-                    </PrivacyMask>
+
+                <div style={{ marginTop: '0.5rem' }}>
+                    <button
+                        type="button"
+                        style={{
+                            background: 'var(--bg-dark)',
+                            color: 'var(--accent)',
+                            border: 'none',
+                            borderRadius: 'var(--radius-full)',
+                            padding: '0.4rem 0.85rem',
+                            fontSize: '0.78rem',
+                            fontWeight: 600,
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '0.35rem',
+                            cursor: 'pointer',
+                            boxShadow: '0 2px 8px rgba(0,0,0,0.15)'
+                        }}
+                    >
+                        <span>View {customers?.length || 0} active debts</span>
+                        <ArrowUpRight size={14} />
+                    </button>
                 </div>
-                <p style={{ fontSize: '0.8rem', color: 'var(--accent)', margin: 0, opacity: 0.8, marginTop: '0.2rem', position: 'relative', zIndex: 2 }}>
-                    Click to view {customers?.length || 0} active debts
-                </p>
             </div>
 
             {isOpen && typeof document !== 'undefined' && createPortal(
-                <div className="success-overlay" style={{ alignItems: 'center', justifyContent: 'center', zIndex: 9999 }}>
-                    <div className="glass-panel" style={{ width: '90%', maxWidth: '500px', padding: '2rem', animation: 'successPop 0.3s ease forwards', position: 'relative', maxHeight: '80vh', display: 'flex', flexDirection: 'column' }}>
-
+                <div className="modal-overlay" onClick={() => setIsOpen(false)}>
+                    <div
+                        className="modal-card animate-fade-in"
+                        style={{ maxWidth: '520px', maxHeight: '85vh', display: 'flex', flexDirection: 'column' }}
+                        onClick={(e) => e.stopPropagation()}
+                    >
                         <button
                             onClick={() => setIsOpen(false)}
-                            style={{ position: 'absolute', top: '1.25rem', right: '1.25rem', background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}
+                            style={{
+                                position: 'absolute',
+                                top: '1.25rem',
+                                right: '1.25rem',
+                                background: 'var(--bg-subtle)',
+                                border: 'none',
+                                borderRadius: '50%',
+                                width: '32px',
+                                height: '32px',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                color: 'var(--text-secondary)',
+                                cursor: 'pointer'
+                            }}
                         >
-                            <X size={24} />
+                            <X size={18} />
                         </button>
 
-                        <div style={{ marginBottom: '1.5rem', borderBottom: '1px solid var(--card-border)', paddingBottom: '1rem' }}>
-                            <h2 style={{ fontSize: '1.4rem', margin: '0 0 0.5rem 0', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                <Users size={24} className="text-accent" /> Active Outstandings
-                            </h2>
-                            <p style={{ margin: 0, fontSize: '0.9rem', color: 'var(--text-muted)' }}>
-                                Total Ledger: <strong className="text-accent">
+                        <div style={{ marginBottom: '1.25rem', paddingBottom: '1rem', borderBottom: '1px solid var(--border-subtle)' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '0.35rem' }}>
+                                <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: 'var(--bg-dark)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--accent)' }}>
+                                    <Users size={18} />
+                                </div>
+                                <h3 style={{ margin: 0, fontSize: '1.25rem' }}>Active Outstandings</h3>
+                            </div>
+                            <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                                Total Ledger: <strong style={{ color: 'var(--text-primary)' }}>
                                     <PrivacyMask>₹{totalLoan.toFixed(2)}</PrivacyMask>
                                 </strong> across {customers.length} individuals
                             </p>
                         </div>
 
-                        <div style={{ overflowY: 'auto', paddingRight: '0.5rem', display: 'flex', flexDirection: 'column', gap: '0.75rem', flex: 1 }}>
+                        <div style={{ overflowY: 'auto', paddingRight: '0.35rem', display: 'flex', flexDirection: 'column', gap: '0.6rem', flex: 1 }}>
                             {customers.length === 0 ? (
                                 <p style={{ color: 'var(--text-muted)', textAlign: 'center', margin: '2rem 0' }}>No active loans found.</p>
                             ) : (
                                 customers.map((c) => (
-                                    <div key={c.id} className="flex-between" style={{ background: 'rgba(255,255,255,0.03)', padding: '1rem', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.05)' }}>
+                                    <div
+                                        key={c.id}
+                                        className="flex-between"
+                                        style={{
+                                            background: 'var(--bg-subtle)',
+                                            padding: '0.85rem 1rem',
+                                            borderRadius: 'var(--radius-md)',
+                                            border: '1px solid var(--border-subtle)'
+                                        }}
+                                    >
                                         <div>
-                                            <p style={{ fontWeight: 600, color: 'var(--text-main)', margin: '0 0 0.2rem 0', fontSize: '1.05rem' }}>{c.name}</p>
-                                            <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', margin: 0, fontFamily: 'monospace' }}>{c.phone || 'No phone recorded'}</p>
+                                            <p style={{ fontWeight: 600, color: 'var(--text-primary)', margin: '0 0 0.15rem 0', fontSize: '0.95rem' }}>{c.name}</p>
+                                            <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', margin: 0 }}>{c.phone || 'No phone recorded'}</p>
                                         </div>
                                         <div style={{ textAlign: 'right' }}>
-                                            <span className="badge badge-warning" style={{ fontSize: '0.9rem', padding: '0.4rem 0.8rem' }}>
+                                            <span className="badge-status loan" style={{ fontSize: '0.85rem', padding: '0.35rem 0.75rem' }}>
                                                 <PrivacyMask>₹{((c.total_loan || 0) + (c.old_loan || 0)).toFixed(2)}</PrivacyMask>
                                             </span>
                                         </div>

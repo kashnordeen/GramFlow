@@ -15,15 +15,16 @@ const PrivacyContext = createContext<PrivacyContextType>({
 export const usePrivacy = () => useContext(PrivacyContext);
 
 export function PrivacyProvider({ children }: { children: React.ReactNode }) {
-    const [isVisible, setIsVisible] = useState(true);
+    const [isVisible, setIsVisible] = useState(() => {
+        if (typeof window !== "undefined") {
+            const stored = localStorage.getItem("gramflow_privacy_mode");
+            return stored !== null ? stored === "true" : true;
+        }
+        return true;
+    });
     const [isMounted, setIsMounted] = useState(false);
 
     useEffect(() => {
-        // Load preference from local storage on mount
-        const stored = localStorage.getItem("gramflow_privacy_mode");
-        if (stored) {
-            setIsVisible(stored === "true");
-        }
         setIsMounted(true);
     }, []);
 

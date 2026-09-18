@@ -1,5 +1,6 @@
-import { jsPDF } from "jspdf";
+import { jsPDF, GState } from "jspdf";
 import autoTable from "jspdf-autotable";
+import { Sale, SaleBatchAssignment } from "@/types";
 
 // Helper to load image as base64 on the client
 const getBase64ImageFromUrl = async (imageUrl: string): Promise<string | null> => {
@@ -19,12 +20,12 @@ const getBase64ImageFromUrl = async (imageUrl: string): Promise<string | null> =
     }
 };
 
-export async function generateReceipt(sale: any) {
+export async function generateReceipt(sale: Sale) {
     // 1. Initialize Document
     const doc = new jsPDF({
         orientation: "portrait",
         unit: "mm",
-        format: "a4" // Upgraded to A4 for the official certificate look
+        format: "a4"
     });
 
     const logoBase64 = await getBase64ImageFromUrl("/logo.png");
@@ -59,10 +60,9 @@ export async function generateReceipt(sale: any) {
     // BACKGROUND WATERMARK
     // ---------------------------------------------------------
     if (logoBase64) {
-        doc.setGState(new (doc as any).GState({ opacity: 0.04 }));
-        // Center a massive watermark
+        doc.setGState(new GState({ opacity: 0.04 }));
         doc.addImage(logoBase64, "PNG", PAGE_WIDTH / 2 - 80, PAGE_HEIGHT / 2 - 80, 160, 160);
-        doc.setGState(new (doc as any).GState({ opacity: 1.0 }));
+        doc.setGState(new GState({ opacity: 1.0 }));
     }
 
     // ---------------------------------------------------------
@@ -156,15 +156,16 @@ export async function generateReceipt(sale: any) {
         },
         head: [['Financial Breakdown', 'Amount']],
         body: [
-            ['Total Weight Delivered', `${sale.grams_sold?.toFixed(2)} g`],
-            ['Gross Valuation', `Rs. ${sale.gross_amount?.toFixed(2)}`],
-            ['Discount Allocation', `- Rs. ${sale.discount?.toFixed(2)}`],
-            ['Final Payable Valuation', `Rs. ${sale.final_amount?.toFixed(2)}`],
-            ['Payment Secured', `Rs. ${sale.amount_received?.toFixed(2)}`],
+            ['Total Weight Delivered', `${(sale.grams_sold || 0).toFixed(2)} g`],
+            ['Gross Valuation', `Rs. ${(sale.gross_amount || 0).toFixed(2)}`],
+            ['Discount Allocation', `- Rs. ${(sale.discount || 0).toFixed(2)}`],
+            ['Final Payable Valuation', `Rs. ${(sale.final_amount || 0).toFixed(2)}`],
+            ['Payment Secured', `Rs. ${(sale.amount_received || 0).toFixed(2)}`],
         ]
     });
 
-    currentY = (doc as any).lastAutoTable.finalY;
+    const docWithTable = doc as jsPDF & { lastAutoTable: { finalY: number } };
+    currentY = docWithTable.lastAutoTable.finalY;
 
     // Balance Highlight row
     doc.setFillColor(isLoan ? 254 : 240, isLoan ? 242 : 253, isLoan ? 242 : 244); // Red-50 or Emerald-50
@@ -174,7 +175,7 @@ export async function generateReceipt(sale: any) {
     if (isLoan) {
         doc.setTextColor(220, 38, 38); // Red 600
         doc.text("OUTSTANDING LOAN BALANCE:", MARGIN + 4, currentY + 8);
-        doc.text(`Rs. ${sale.balance?.toFixed(2)}`, PAGE_WIDTH - MARGIN - 4, currentY + 8, { align: 'right' });
+        doc.text(`Rs. ${(sale.balance || 0).toFixed(2)}`, PAGE_WIDTH - MARGIN - 4, currentY + 8, { align: 'right' });
     } else {
         doc.setTextColor(...PRIMARY_COLOR);
         doc.text("ACCOUNT STATUS:", MARGIN + 4, currentY + 8);
@@ -184,7 +185,7 @@ export async function generateReceipt(sale: any) {
     currentY += 24;
 
     // ---------------------------------------------------------
-    // BATCH ALLOCATION HISTORY (The requested feature)
+    // BATCH ALLOCATION HISTORY
     // ---------------------------------------------------------
     if (sale.batchesDeducted && sale.batchesDeducted.length > 0) {
         doc.setFont("helvetica", "bold");
@@ -193,7 +194,7 @@ export async function generateReceipt(sale: any) {
         doc.text("Product Origin & Batch Allocation", MARGIN, currentY);
         currentY += 6;
 
-        const batchBody = sale.batchesDeducted.map((b: any) => [
+        const batchBody = sale.batchesDeducted.map((b: SaleBatchAssignment) => [
             `Stock Batch #${b.batch_id}`,
             `${Number(b.grams_deducted).toFixed(2)} g`
         ]);
@@ -224,7 +225,7 @@ export async function generateReceipt(sale: any) {
             body: batchBody
         });
 
-        currentY = (doc as any).lastAutoTable.finalY + 12;
+        currentY = docWithTable.lastAutoTable.finalY + 12;
     }
 
     // ---------------------------------------------------------

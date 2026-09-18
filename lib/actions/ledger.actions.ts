@@ -1,75 +1,34 @@
 "use server";
 
-import { getDb } from "../db";
+import { query } from "../db";
+import { requirePermission } from "../auth/authorization";
+import { Customer, CustomerLedgerData, TimelineItem, ActionResult } from "@/types";
 
-export async function getCustomerLedger(customerId: number) {
-    try {
-        const db = getDb();
+interface SaleItem { id: number; grams: number; final_amount: number; amount_received: number; created_at: string; type: "sale"; batch_numbers: string | null; }
+interface PaymentItem { id: number; amount_received: number; created_at: string; type: "payment"; }
 
-        const customer = db.prepare("SELECT * FROM customers WHERE id = ?").get(customerId) as any;
-        if (!customer) {
-            return { error: "Customer not found" };
-        }
-
-        const sales = db.prepare(`
-            SELECT 
-                s.id, 
-                s.grams_sold as grams, 
-                s.final_amount, 
-                s.amount_received, 
-                s.created_at, 
-                'sale' as type,
-                GROUP_CONCAT(sba.batch_id, ', ') as batch_numbers
-            FROM sales s
-            LEFT JOIN sale_batch_assignments sba ON s.id = sba.sale_id
-            WHERE s.customer_id = ?
-            GROUP BY s.id
-        `).all(customerId) as any[];
-        const payments = db.prepare("SELECT id, amount as amount_received, created_at, 'payment' as type FROM payments WHERE customer_id = ?").all(customerId) as any[];
-
-        // Merge and sort by created_at ascending
-        const timeline = [...sales, ...payments].sort((a, b) => {
-            return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
-        });
-
-        // Calculate running balance and totals
-        let runningBalance = customer.old_loan || 0;
-        let totalGrams = 0;
-        let totalPayments = 0;
-
-        const processedTimeline = timeline.map(item => {
-            if (item.type === 'sale') {
-                totalGrams += item.grams || 0;
-                totalPayments += item.amount_received || 0;
-                // Add the sale's final amount to loan, subtract what they paid at that time
-                runningBalance += (item.final_amount || 0) - (item.amount_received || 0);
-                return {
-                    ...item,
-                    running_balance: runningBalance
-                };
-            } else {
-                totalPayments += item.amount_received || 0;
-                // Subtract payment from loan
-                runningBalance -= (item.amount_received || 0);
-                return {
-                    ...item,
-                    running_balance: runningBalance
-                };
-            }
-        });
-
-        return {
-            success: true,
-            customer,
-            timeline: processedTimeline,
-            summary: {
-                totalGrams,
-                totalPayments,
-                finalBalance: (customer.total_loan || 0) + (customer.old_loan || 0) // Use combined debt as source of truth
-            }
-        };
-
-    } catch (err) {
-        return { error: (err as Error).message };
-    }
+export async function getCustomerLedger(customerId: number): Promise<ActionResult<CustomerLedgerData>> {
+  try {
+    await requirePermission("customers.read");
+    const customer = (await query<Customer>("SELECT * FROM customers WHERE id=$1", [customerId])).rows[0];
+    if (!customer) return { error: "Customer not found" };
+    const [sales, payments] = await Promise.all([
+      query<SaleItem>(`SELECT s.id,s.grams_sold AS grams,s.final_amount,s.amount_received,s.created_at,'sale'::text AS type,
+        string_agg(a.batch_id::text,', ' ORDER BY a.batch_id) AS batch_numbers
+        FROM sales s LEFT JOIN sale_batch_assignments a ON a.sale_id=s.id WHERE s.customer_id=$1 AND s.status='POSTED'
+        GROUP BY s.id ORDER BY s.created_at`, [customerId]),
+      query<PaymentItem>(`SELECT id,amount AS amount_received,created_at,'payment'::text AS type FROM payments WHERE customer_id=$1 ORDER BY created_at`, [customerId]),
+    ]);
+    const timeline = [...sales.rows, ...payments.rows].sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+    let runningBalance = customer.old_loan || 0, totalGrams = 0, totalPayments = 0;
+    const processed: TimelineItem[] = timeline.map((item) => {
+      if (item.type === "sale") {
+        totalGrams += item.grams; totalPayments += item.amount_received; runningBalance += item.final_amount - item.amount_received;
+        return { ...item, running_balance: runningBalance, batch_numbers: item.batch_numbers || undefined };
+      }
+      totalPayments += item.amount_received; runningBalance -= item.amount_received;
+      return { ...item, running_balance: runningBalance };
+    });
+    return { success: true, data: { customer, timeline: processed, summary: { totalGrams, totalPayments, finalBalance: customer.total_loan + customer.old_loan } } };
+  } catch (error) { return { error: error instanceof Error ? error.message : "Ledger lookup failed" }; }
 }

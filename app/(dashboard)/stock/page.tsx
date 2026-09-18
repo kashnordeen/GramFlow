@@ -7,9 +7,12 @@ import { Layers, PackagePlus } from "lucide-react";
 import { DeleteBatchBtn } from "@/components/ui/DeleteBatchBtn";
 import { EditBatchBtn } from "@/components/ui/EditBatchBtn";
 import { CloseBatchBtn } from "@/components/ui/CloseBatchBtn";
+import { StockBatch } from "@/types";
+import { useAccess } from "@/components/AccessProvider";
 
 export default function StockPage() {
-    const [batches, setBatches] = useState<any[]>([]);
+    const { hasPermission } = useAccess();
+    const [batches, setBatches] = useState<StockBatch[]>([]);
     const [totalStock, setTotalStock] = useState(0);
     const [loading, setLoading] = useState(true);
 
@@ -51,31 +54,38 @@ export default function StockPage() {
         }
     };
 
-    if (loading) return <div className="text-center mt-2">Loading Vault...</div>;
+    if (loading) return (
+        <div style={{ display: 'flex', justifyContent: 'center', margin: '4rem' }}>
+            <div style={{ fontSize: '1rem', color: 'var(--text-secondary)' }}>Loading stock vault...</div>
+        </div>
+    );
 
     return (
         <>
-            <div className="flex-between" style={{ marginBottom: "2.5rem" }}>
+            <div className="flex-between" style={{ marginBottom: "2rem" }}>
                 <div>
                     <h1>Stock Vault</h1>
-                    <p>Register new incoming Grams. Strict automated FIFO fulfillment ensures earliest batches clear first.</p>
+                    <p>Ingest incoming inventory batches. Strict automated FIFO fulfillment ensures earliest batches clear first.</p>
                 </div>
-                <div className="glass-card" style={{ padding: '1.25rem 2rem', border: '1px solid var(--accent)' }}>
-                    <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-muted)' }}>Net Available Stock</p>
-                    <div className="metric-value" style={{ margin: 0, fontSize: '2rem', color: 'var(--text-main)', display: 'flex', gap: '0.4rem' }}>
-                        {totalStock.toFixed(2)}<span style={{ fontSize: '1.2rem', color: 'var(--accent)' }}>g</span>
+                <div className="card-dark" style={{ padding: '1rem 1.75rem', minWidth: '220px', display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                    <div>
+                        <p style={{ margin: 0, fontSize: '0.75rem', color: 'rgba(255, 255, 255, 0.6)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Net Available Stock</p>
+                        <div style={{ margin: 0, fontSize: '1.8rem', fontWeight: 700, color: 'var(--accent)', display: 'flex', alignItems: 'baseline', gap: '0.2rem' }}>
+                            {totalStock.toFixed(2)}<span style={{ fontSize: '1.1rem', fontWeight: 500 }}>g</span>
+                        </div>
                     </div>
                 </div>
             </div>
 
-            <div className="grid-2" style={{ marginBottom: "3rem" }}>
-                <div className="glass-panel" style={{ padding: '2.5rem' }}>
-                    <h3 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1.5rem' }}>
-                        <PackagePlus className="text-accent" size={24} /> Ingest New Batch
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '1.5rem', marginBottom: '2.5rem', alignItems: 'start' }}>
+                {/* Ingest Batch Card */}
+                {hasPermission("inventory.create") && <div className="card-light" style={{ padding: '2rem' }}>
+                    <h3 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1.25rem', fontSize: '1.2rem' }}>
+                        <PackagePlus size={20} /> Ingest New Batch
                     </h3>
                     <form onSubmit={handleAddBatch}>
-                        <div className="form-group mb-2">
-                            <label>Initial Gram Weight <span className="text-error">*</span></label>
+                        <div className="form-group">
+                            <label>Initial Gram Weight <span style={{ color: 'var(--danger)' }}>*</span></label>
                             <input
                                 type="number"
                                 step="0.01"
@@ -86,29 +96,30 @@ export default function StockPage() {
                                 required
                                 placeholder="e.g. 10.50"
                             />
-                            <p style={{ fontSize: '0.8rem', marginTop: '0.5rem' }}>
-                                Cost price is bound dynamically to ENVs upon ingestion.
+                            <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>
+                                Cost price per gram is read from the secured server environment at ingestion time.
                             </p>
                         </div>
 
                         <button type="submit" className="btn btn-primary" style={{ width: '100%', marginTop: '0.5rem' }} disabled={adding}>
-                            {adding ? "Writing to ledger..." : "Confirm Ingestion"}
+                            {adding ? "Writing to ledger..." : "Confirm Batch Ingestion"}
                         </button>
                     </form>
-                </div>
+                </div>}
 
-                <div className="glass-panel flex-center" style={{ padding: '2rem', flexDirection: 'column', color: 'var(--text-muted)', background: 'rgba(0,0,0,0.3)', border: 'none' }}>
-                    <Layers size={64} style={{ opacity: 0.15, marginBottom: '1.5rem' }} />
-                    <p style={{ textAlign: 'center', lineHeight: 1.6, maxWidth: '80%' }}>
-                        <strong>FIFO Principle enforced automatically.</strong><br />
-                        Sales will deduct weight progressively from the oldest batch below. When a batch hits 0.0g remaining, it is finalized.
+                {/* FIFO Explanation Card */}
+                <div className="card-light bg-halftone" style={{ padding: '2rem', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', textAlign: 'center', minHeight: '220px' }}>
+                    <Layers size={40} style={{ opacity: 0.35, marginBottom: '1rem', color: 'var(--text-primary)' }} />
+                    <h4 style={{ margin: '0 0 0.4rem 0', fontSize: '1.05rem', fontWeight: 600 }}>FIFO Principle Enforced</h4>
+                    <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-secondary)', maxWidth: '340px', lineHeight: 1.5 }}>
+                        Sales automatically deduct weight from the oldest available batch. When a batch hits 0.00g, it is finalized.
                     </p>
                 </div>
             </div>
 
-            <h2>Historical Batches Master-list</h2>
-            <div className="table-container table-responsive">
-                <table>
+            <h2 style={{ marginTop: '2.5rem', marginBottom: '1rem' }}>Historical Batches Master-list</h2>
+            <div className="table-luxury-container">
+                <table className="table-luxury">
                     <thead>
                         <tr>
                             <th>Date Created</th>
@@ -121,45 +132,53 @@ export default function StockPage() {
                         </tr>
                     </thead>
                     <tbody>
-                        {batches.map((b: any) => {
+                        {batches.map((b: StockBatch) => {
                             const d = new Date(b.created_at.replace(' ', 'T') + 'Z');
-                            const date = d.toLocaleDateString() + ' ' + d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                            const date = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+                            const time = d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
                             const isExhausted = b.remaining_grams === 0;
                             const profit = (b.total_revenue || 0) - (b.total_cost || 0);
 
                             return (
-                                <tr key={b.id} style={{ opacity: isExhausted ? 0.6 : 1 }}>
-                                    <td style={{ color: 'var(--text-muted)' }}>{date}</td>
-                                    <td style={{ fontWeight: 600 }}>{b.grams.toFixed(2)}g</td>
-                                    <td style={{ fontWeight: 700, color: isExhausted ? 'var(--text-muted)' : 'var(--accent)' }}>
+                                <tr key={b.id} style={{ opacity: isExhausted ? 0.65 : 1 }}>
+                                    <td style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }} suppressHydrationWarning>
+                                        <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{date}</div>
+                                        <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>{time}</div>
+                                    </td>
+                                    <td style={{ fontWeight: 600, color: 'var(--text-primary)' }}>
+                                        {b.grams.toFixed(2)}g
+                                    </td>
+                                    <td style={{ fontWeight: 700, color: isExhausted ? 'var(--text-muted)' : 'var(--text-primary)' }}>
                                         {b.remaining_grams.toFixed(2)}g
                                     </td>
                                     <td>
-                                        <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Cost: ₹{(b.total_cost || 0).toFixed(2)}</div>
-                                        <div style={{ fontSize: '0.85rem', color: 'var(--accent)' }}>Rev: ₹{(b.total_revenue || 0).toFixed(2)}</div>
+                                        <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Cost: ₹{(b.total_cost || 0).toFixed(2)}</div>
+                                        <div style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-primary)' }}>Rev: ₹{(b.total_revenue || 0).toFixed(2)}</div>
                                     </td>
-                                    <td style={{ fontFamily: 'monospace', fontWeight: 600, color: profit >= 0 ? 'var(--success)' : 'var(--error)' }}>
+                                    <td style={{ fontFamily: 'monospace', fontWeight: 700, color: profit >= 0 ? 'var(--success)' : 'var(--danger)' }}>
                                         {profit >= 0 ? '+' : '-'}₹{Math.abs(profit).toFixed(2)}
                                     </td>
                                     <td>
                                         {isExhausted ? (
-                                            <span className="badge badge-success">Depleted</span>
+                                            <span className="badge-status depleted">Depleted</span>
                                         ) : (
-                                            <span className="badge badge-info">Active Supplier</span>
+                                            <span className="badge-status paid">Active Supplier</span>
                                         )}
                                     </td>
-                                    <td style={{ textAlign: 'right', display: 'flex', gap: '0.4rem', justifyContent: 'flex-end', alignItems: 'center' }}>
-                                        {!isExhausted && <CloseBatchBtn id={b.id} />}
-                                        <EditBatchBtn batch={b} />
-                                        {!isExhausted && b.grams === b.remaining_grams && (
-                                            <DeleteBatchBtn id={b.id} />
-                                        )}
+                                    <td style={{ textAlign: 'right' }}>
+                                        <div style={{ display: 'flex', gap: '0.35rem', justifyContent: 'flex-end', alignItems: 'center' }}>
+                                            {!isExhausted && <CloseBatchBtn id={b.id} />}
+                                            <EditBatchBtn batch={b} />
+                                            {!isExhausted && b.grams === b.remaining_grams && (
+                                                <DeleteBatchBtn id={b.id} />
+                                            )}
+                                        </div>
                                     </td>
                                 </tr>
-                            )
+                            );
                         })}
                         {batches.length === 0 && (
-                            <tr><td colSpan={6} className="text-center" style={{ padding: '2rem' }}>No batch histories exist. Ingest your first batch to begin operation.</td></tr>
+                            <tr><td colSpan={7} style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-muted)' }}>No batch histories exist. Ingest your first batch to begin operation.</td></tr>
                         )}
                     </tbody>
                 </table>

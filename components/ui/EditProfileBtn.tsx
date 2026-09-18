@@ -57,21 +57,21 @@ export function EditProfileBtn({
     if (!isOpen || typeof document === 'undefined') return null;
 
     return createPortal(
-        <div className="modal-overlay">
-            <div className="glass-panel animate-fade-in" style={{ width: '100%', maxWidth: '450px', padding: '2rem', position: 'relative', textAlign: 'left' }}>
+        <div className="modal-overlay" onClick={() => setIsOpen(false)}>
+            <div className="modal-card animate-fade-in" style={{ maxWidth: '440px' }} onClick={(e) => e.stopPropagation()}>
                 <button
                     onClick={() => setIsOpen(false)}
-                    style={{ position: 'absolute', top: '1rem', right: '1rem', background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}
+                    style={{ position: 'absolute', top: '1.25rem', right: '1.25rem', background: 'var(--bg-subtle)', border: 'none', borderRadius: '50%', width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-secondary)', cursor: 'pointer' }}
                 >
-                    <X size={24} />
+                    <X size={18} />
                 </button>
 
-                <h3 style={{ marginTop: 0, marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    <UserCircle className="text-accent" /> Edit Profile
+                <h3 style={{ marginTop: 0, marginBottom: '1.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '1.25rem' }}>
+                    <UserCircle size={20} /> Edit Profile
                 </h3>
 
                 <form onSubmit={handleSave}>
-                    <div className="form-group mb-2">
+                    <div className="form-group">
                         <label>Display Name</label>
                         <input
                             type="text"
@@ -81,7 +81,7 @@ export function EditProfileBtn({
                             required
                         />
                     </div>
-                    <div className="form-group mb-2">
+                    <div className="form-group">
                         <label>New Password (Optional)</label>
                         <input
                             type="password"
@@ -92,26 +92,26 @@ export function EditProfileBtn({
                         />
                     </div>
 
-                    <hr style={{ borderColor: 'var(--card-border)', margin: '1.5rem 0' }} />
-
-                    <div className="form-group mb-2">
-                        <label className="text-error">Current Password (Required)</label>
-                        <input
-                            type="password"
-                            className="input-field"
-                            value={currentPassword}
-                            onChange={e => setCurrentPassword(e.target.value)}
-                            required
-                            placeholder="Verify identity to apply changes"
-                        />
+                    <div style={{ borderTop: '1px solid var(--border-subtle)', margin: '1.25rem 0', paddingTop: '1.25rem' }}>
+                        <div className="form-group">
+                            <label style={{ color: 'var(--danger)' }}>Current Password (Required)</label>
+                            <input
+                                type="password"
+                                className="input-field"
+                                value={currentPassword}
+                                onChange={e => setCurrentPassword(e.target.value)}
+                                required
+                                placeholder="Enter current password to verify"
+                            />
+                        </div>
                     </div>
 
-                    <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem', marginTop: '2rem' }}>
-                        <button type="button" onClick={() => setIsOpen(false)} className="btn btn-secondary" style={{ width: 'auto', marginBottom: 0 }}>
+                    <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '1.75rem' }}>
+                        <button type="button" onClick={() => setIsOpen(false)} className="btn btn-secondary" style={{ flex: 1 }}>
                             Cancel
                         </button>
-                        <button type="submit" disabled={loading} className="btn" style={{ width: 'auto', marginBottom: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                            <Save size={18} /> {loading ? "Saving..." : "Save Changes"}
+                        <button type="submit" disabled={loading} className="btn btn-primary" style={{ flex: 1 }}>
+                            <Save size={16} /> {loading ? "Saving..." : "Save Changes"}
                         </button>
                     </div>
                 </form>

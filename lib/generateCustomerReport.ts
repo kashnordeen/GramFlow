@@ -1,5 +1,6 @@
-import { jsPDF } from "jspdf";
+import { jsPDF, GState } from "jspdf";
 import autoTable from "jspdf-autotable";
+import { CustomerLedgerData, TimelineItem } from "@/types";
 
 // Helper to load image as base64 on the client
 const getBase64ImageFromUrl = async (imageUrl: string): Promise<string | null> => {
@@ -19,7 +20,7 @@ const getBase64ImageFromUrl = async (imageUrl: string): Promise<string | null> =
     }
 };
 
-export async function generateCustomerReport(data: any) {
+export async function generateCustomerReport(data: CustomerLedgerData) {
     const { customer, timeline, summary } = data;
 
     // 1. Initialize Document
@@ -48,9 +49,9 @@ export async function generateCustomerReport(data: any) {
     // BACKGROUND WATERMARK
     // ---------------------------------------------------------
     if (logoBase64) {
-        doc.setGState(new (doc as any).GState({ opacity: 0.04 }));
+        doc.setGState(new GState({ opacity: 0.04 }));
         doc.addImage(logoBase64, "PNG", PAGE_WIDTH / 2 - 80, PAGE_HEIGHT / 2 - 80, 160, 160);
-        doc.setGState(new (doc as any).GState({ opacity: 1.0 }));
+        doc.setGState(new GState({ opacity: 1.0 }));
     }
 
     // ---------------------------------------------------------
@@ -107,7 +108,7 @@ export async function generateCustomerReport(data: any) {
     doc.setFontSize(10);
     doc.setTextColor(...TEXT_MUTED);
     doc.text(`Phone: ${customer.phone || 'N/A'}`, MARGIN, currentY + 13);
-    doc.text(`Initial Bal: Rs. ${customer.old_loan?.toFixed(2) || '0.00'}`, MARGIN, currentY + 18);
+    doc.text(`Initial Bal: Rs. ${(customer.old_loan || 0).toFixed(2)}`, MARGIN, currentY + 18);
 
     // Right Box: Document Info
     doc.setFont("helvetica", "bold");
@@ -125,7 +126,7 @@ export async function generateCustomerReport(data: any) {
     // HISTORY TIMELINE TABLE
     // ---------------------------------------------------------
 
-    const tableBody = timeline.map((item: any) => {
+    const tableBody = timeline.map((item: TimelineItem) => {
         const d = new Date(item.created_at.replace(' ', 'T') + 'Z');
         const dateStr = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: '2-digit' });
 
@@ -134,12 +135,10 @@ export async function generateCustomerReport(data: any) {
             typeStr += `\n(Batch #${item.batch_numbers})`;
         }
 
-        let gramsStr = item.type === 'sale' ? `${item.grams?.toFixed(2)} g` : '-';
-        let billedStr = item.type === 'sale' ? `${item.final_amount?.toFixed(2)}` : '-';
-        let rcvdStr = item.amount_received > 0 ? `${item.amount_received?.toFixed(2)}` : '-';
-        let balStr = `${item.running_balance?.toFixed(2)}`;
-
-        // Reformat the initial running balance offset by old_loan if needed (backend didn't track old_loan offsets for each row individually nicely, but we can assume total_loan is absolute).
+        const gramsStr = item.type === 'sale' ? `${(item.grams || 0).toFixed(2)} g` : '-';
+        const billedStr = item.type === 'sale' ? `${(item.final_amount || 0).toFixed(2)}` : '-';
+        const rcvdStr = item.amount_received > 0 ? `${item.amount_received.toFixed(2)}` : '-';
+        const balStr = `${(item.running_balance || 0).toFixed(2)}`;
 
         return [
             item.type === 'sale' ? `S-${item.id}` : `P-${item.id}`,
@@ -182,7 +181,8 @@ export async function generateCustomerReport(data: any) {
         body: tableBody
     });
 
-    currentY = (doc as any).lastAutoTable.finalY + 15;
+    const docWithTable = doc as jsPDF & { lastAutoTable: { finalY: number } };
+    currentY = docWithTable.lastAutoTable.finalY + 15;
 
     // ---------------------------------------------------------
     // SUMMARY FOOTER & STAY HIGH LOGO
@@ -199,7 +199,6 @@ export async function generateCustomerReport(data: any) {
 
     // --- LEFT COLUMN: Stay High Logo ---
     if (stayHighBase64) {
-        // Render it slightly down and constrained to match the height of the totals block
         doc.addImage(stayHighBase64, "PNG", MARGIN, columnsYStart - 5, 50, 50);
     }
 
@@ -256,7 +255,7 @@ export async function generateCustomerReport(data: any) {
     // ---------------------------------------------------------
     // FOOTER REPEATER
     // ---------------------------------------------------------
-    const totalPages = (doc.internal as any).getNumberOfPages();
+    const totalPages = doc.getNumberOfPages();
     for (let i = 1; i <= totalPages; i++) {
         doc.setPage(i);
         doc.setFont("helvetica", "italic");

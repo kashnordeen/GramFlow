@@ -1,32 +1,27 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { createPortal } from "react-dom";
 import { Edit2, X } from "lucide-react";
 import { updateSale } from "@/lib/actions/sale.actions";
 import { showToast } from "@/components/ToastProvider";
+import { Sale } from "@/types";
+import { useAccess } from "@/components/AccessProvider";
 
-export function EditSaleBtn({ sale }: { sale: any }) {
+export function EditSaleBtn({ sale }: { sale: Sale }) {
+    const { hasPermission } = useAccess();
     const [isOpen, setIsOpen] = useState(false);
     const [loading, setLoading] = useState(false);
 
     // Local form state
-    const [grams, setGrams] = useState(sale.grams_sold?.toString() || "");
     const [discount, setDiscount] = useState(sale.discount?.toString() || "0");
     const [received, setReceived] = useState(sale.amount_received?.toString() || "0");
 
     const handleSave = async (e: React.FormEvent) => {
         e.preventDefault();
 
-        if (parseFloat(grams) !== sale.grams_sold) {
-            if (!confirm("CRITICAL WARNING:\n\nChanging the physical grams sold will permanently destroy this sale's exact historical FIFO batch linkages and automatically generate a new sale sequence to re-calculate current remaining inventory.\n\nAre you sure you want to proceed?")) {
-                return;
-            }
-        }
-
         setLoading(true);
         const fd = new FormData();
-        fd.append("grams_sold", grams);
         fd.append("discount", discount);
         fd.append("amount_received", received);
 
@@ -35,68 +30,64 @@ export function EditSaleBtn({ sale }: { sale: any }) {
         if (res.error) {
             showToast(res.error, "error");
         } else {
-            showToast("Sale entry successfully modified and ledger balances updated.", "success");
+            showToast("Sale entry successfully updated.", "success");
             setIsOpen(false);
         }
         setLoading(false);
     };
 
+    if (!hasPermission("sales.create")) return null;
     return (
         <>
             <button
                 type="button"
                 onClick={() => setIsOpen(true)}
                 title="Edit Sale Details"
-                style={{
-                    background: 'rgba(234, 179, 8, 0.15)',
-                    color: '#facc15',
-                    border: '1px solid rgba(234, 179, 8, 0.3)',
-                    padding: '0.4rem',
-                    borderRadius: '6px',
-                    cursor: 'pointer',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    transition: 'all 0.2s',
-                    marginRight: '0.4rem'
-                }}
-                onMouseOver={(e) => { e.currentTarget.style.background = 'rgba(234, 179, 8, 0.3)' }}
-                onMouseOut={(e) => { e.currentTarget.style.background = 'rgba(234, 179, 8, 0.15)' }}
+                className="action-icon-btn"
             >
-                <Edit2 size={16} />
+                <Edit2 size={15} />
             </button>
 
             {isOpen && typeof document !== 'undefined' && createPortal(
-                <div className="modal-overlay">
-                    <div className="glass-panel animate-fade-in" style={{ width: '100%', maxWidth: '450px', padding: '2rem', position: 'relative', textAlign: 'left' }}>
+                <div className="modal-overlay" onClick={() => setIsOpen(false)}>
+                    <div className="modal-card animate-fade-in" onClick={(e) => e.stopPropagation()}>
                         <button
                             onClick={() => setIsOpen(false)}
-                            style={{ position: 'absolute', top: '1rem', right: '1rem', background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}
+                            style={{ position: 'absolute', top: '1.25rem', right: '1.25rem', background: 'var(--bg-subtle)', border: 'none', borderRadius: '50%', width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-secondary)', cursor: 'pointer' }}
                         >
-                            <X size={24} />
+                            <X size={18} />
                         </button>
 
-                        <h3 style={{ marginTop: 0, marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                            <Edit2 className="text-accent" /> Modify Sale Entry
+                        <h3 style={{ marginTop: 0, marginBottom: '1.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '1.25rem' }}>
+                            <Edit2 size={20} /> Modify Sale Entry
                         </h3>
 
                         <form onSubmit={handleSave}>
-                            <div className="form-group mb-2">
+                            <div className="form-group">
                                 <label>Grams Sold (g)</label>
-                                <input type="number" step="0.01" className="input-field" value={grams} onChange={e => setGrams(e.target.value)} required />
-                                <p style={{ fontSize: '0.75rem', color: 'var(--error)', marginTop: '0.5rem', marginBottom: '0.5rem' }}>Changing this physically alters historical stock linkages.</p>
+                                <input
+                                    type="number"
+                                    step="0.01"
+                                    className="input-field"
+                                    value={sale.grams_sold}
+                                    disabled
+                                    style={{ opacity: 0.65, cursor: 'not-allowed', background: 'var(--bg-subtle)' }}
+                                />
+                                <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', margin: 0 }}>
+                                    Weight is locked to preserve FIFO lineage. Delete and re-record to modify grams.
+                                </p>
                             </div>
-                            <div className="form-group mb-2">
+                            <div className="form-group">
                                 <label>Discount Applied (₹)</label>
                                 <input type="number" step="0.01" className="input-field" value={discount} onChange={e => setDiscount(e.target.value)} required />
                             </div>
-                            <div className="form-group mb-2">
+                            <div className="form-group">
                                 <label>Amount Received (₹)</label>
                                 <input type="number" step="0.01" className="input-field" value={received} onChange={e => setReceived(e.target.value)} required />
                             </div>
 
-                            <div style={{ display: 'flex', gap: '1rem', marginTop: '2rem' }}>
-                                <button type="button" onClick={() => setIsOpen(false)} className="btn" style={{ flex: 1, background: 'rgba(255,255,255,0.05)', color: 'white' }}>Cancel</button>
+                            <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1.75rem' }}>
+                                <button type="button" onClick={() => setIsOpen(false)} className="btn btn-secondary" style={{ flex: 1 }}>Cancel</button>
                                 <button type="submit" className="btn btn-primary" style={{ flex: 1 }} disabled={loading}>
                                     {loading ? "Saving..." : "Apply Changes"}
                                 </button>

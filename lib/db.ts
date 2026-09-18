@@ -1,139 +1,51 @@
-import Database from 'better-sqlite3';
-import path from 'path';
-import fs from 'fs';
+import { Pool, PoolClient, QueryResult, QueryResultRow, types } from "pg";
 
-// Define DB path
-// In production (Render/Railway), we use the mounted persistent volume at /app/data
-// During development we keep it root-level
-const dbPath = process.env.NODE_ENV === 'production'
-  ? path.join('/app/data', 'inventory.db')
-  : path.join(process.cwd(), 'inventory.db');
+types.setTypeParser(1700, (value) => Number(value));
+types.setTypeParser(20, (value) => Number(value));
 
-let db: ReturnType<typeof Database> | null = null;
+const globalForDb = globalThis as unknown as { gramflowPool?: Pool };
 
-export function getDb() {
-  if (!db) {
-    console.log(`[DB] Initializing database at: ${dbPath}`);
-    // Ensure the directory exists
-    const dir = path.dirname(dbPath);
-    try {
-      if (!fs.existsSync(dir)) {
-        console.log(`[DB] Directory ${dir} not found. Attempting to create...`);
-        fs.mkdirSync(dir, { recursive: true });
-        console.log(`[DB] Directory ${dir} created successfully.`);
-      } else {
-        console.log(`[DB] Directory ${dir} exists.`);
-      }
-    } catch (err) {
-      console.error(`[DB] Failed to check/create directory ${dir}:`, err);
-    }
-
-    try {
-      db = new Database(dbPath);
-      db.pragma('journal_mode = WAL');
-      initializeDb(db);
-      console.log(`[DB] Database connected and initialized.`);
-    } catch (initErr) {
-      console.error(`[DB] Critical Error opening database:`, initErr);
-      throw initErr;
-    }
+function createPool(): Pool {
+  const connectionString = process.env.DATABASE_URL;
+  if (!connectionString) {
+    throw new Error("DATABASE_URL is required. Copy .env.example to .env and configure PostgreSQL.");
   }
-  return db;
+  return new Pool({
+    connectionString,
+    max: Number(process.env.DB_POOL_MAX || 10),
+    idleTimeoutMillis: 30_000,
+    connectionTimeoutMillis: 10_000,
+    ssl: process.env.DATABASE_SSL === "true" ? { rejectUnauthorized: false } : undefined,
+  });
 }
 
-function initializeDb(database: ReturnType<typeof Database>) {
-  // Users Table (Authentication)
-  database.exec(`
-    CREATE TABLE IF NOT EXISTS users (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      email TEXT UNIQUE NOT NULL,
-      name TEXT DEFAULT 'Admin',
-      password_hash TEXT NOT NULL,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-    )
-  `);
+export function getDb(): Pool {
+  if (!globalForDb.gramflowPool) globalForDb.gramflowPool = createPool();
+  return globalForDb.gramflowPool;
+}
 
-  // Migration: Add name column to existing users table
+export async function query<T extends QueryResultRow = QueryResultRow>(text: string, values: readonly unknown[] = []): Promise<QueryResult<T>> {
+  return getDb().query<T>(text, [...values]);
+}
+
+export async function withTransaction<T>(operation: (client: PoolClient) => Promise<T>, isolationLevel: "READ COMMITTED" | "REPEATABLE READ" | "SERIALIZABLE" = "READ COMMITTED"): Promise<T> {
+  const client = await getDb().connect();
   try {
-    database.exec(`ALTER TABLE users ADD COLUMN name TEXT DEFAULT 'Admin'`);
-  } catch (e) {
-    // Column already exists, safe to ignore
+    await client.query(`BEGIN ISOLATION LEVEL ${isolationLevel}`);
+    const result = await operation(client);
+    await client.query("COMMIT");
+    return result;
+  } catch (error) {
+    await client.query("ROLLBACK");
+    throw error;
+  } finally {
+    client.release();
   }
+}
 
-  // Customers Table
-  database.exec(`
-    CREATE TABLE IF NOT EXISTS customers (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      name TEXT NOT NULL,
-      phone TEXT,
-      total_loan REAL DEFAULT 0.0,
-      old_loan REAL DEFAULT 0.0,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-    )
-  `);
-
-  // Migration: Add old_loan column to existing customers table
-  try {
-    database.exec(`ALTER TABLE customers ADD COLUMN old_loan REAL DEFAULT 0.0`);
-  } catch (e) {
-    // Column already exists, safe to ignore
+export async function closeDb(): Promise<void> {
+  if (globalForDb.gramflowPool) {
+    await globalForDb.gramflowPool.end();
+    delete globalForDb.gramflowPool;
   }
-
-  // Stock Batches Table
-  database.exec(`
-    CREATE TABLE IF NOT EXISTS stock_batches (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      grams REAL NOT NULL,
-      price_per_gram REAL NOT NULL,
-      remaining_grams REAL NOT NULL,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-    )
-  `);
-
-  // Sales Table
-  database.exec(`
-    CREATE TABLE IF NOT EXISTS sales (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      customer_id INTEGER NOT NULL,
-      grams_sold REAL NOT NULL,
-      gross_amount REAL NOT NULL,
-      discount REAL DEFAULT 0.0,
-      final_amount REAL NOT NULL,
-      amount_received REAL NOT NULL,
-      balance REAL NOT NULL, -- final_amount - amount_received. If > 0, it's a loan
-      comments TEXT,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-      FOREIGN KEY (customer_id) REFERENCES customers(id)
-    )
-  `);
-
-  // Migration: Add comments column to existing sales tables
-  try {
-    database.exec(`ALTER TABLE sales ADD COLUMN comments TEXT`);
-  } catch (e) {
-    // Column already exists, safe to ignore
-  }
-
-  // Sale Batch Assignments (Tracks WHICH exact batches a sale was deducted from for FIFO compliance)
-  database.exec(`
-    CREATE TABLE IF NOT EXISTS sale_batch_assignments (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      sale_id INTEGER NOT NULL,
-      batch_id INTEGER NOT NULL,
-      grams_deducted REAL NOT NULL,
-      FOREIGN KEY (sale_id) REFERENCES sales(id),
-      FOREIGN KEY (batch_id) REFERENCES stock_batches(id)
-    )
-  `);
-
-  // Payments Table
-  database.exec(`
-    CREATE TABLE IF NOT EXISTS payments (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      customer_id INTEGER NOT NULL,
-      amount REAL NOT NULL,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-      FOREIGN KEY (customer_id) REFERENCES customers(id)
-    )
-  `);
 }

@@ -3,11 +3,12 @@
 import React, { useState, useMemo } from "react";
 import { DeleteSaleBtn } from "./DeleteSaleBtn";
 import { EditSaleBtn } from "./EditSaleBtn";
-import { FileText, Database, Search, Filter, DownloadCloud } from "lucide-react";
+import { Search, DownloadCloud, Calendar, Database } from "lucide-react";
 import { generateReceipt } from "@/lib/generateReceipt";
 import { showToast } from "@/components/ToastProvider";
+import { Sale, SaleBatchAssignment } from "@/types";
 
-export function TransactionsClient({ initialSales }: { initialSales: any[] }) {
+export function TransactionsClient({ initialSales }: { initialSales: Sale[] }) {
     const [searchTerm, setSearchTerm] = useState("");
     const [statusFilter, setStatusFilter] = useState("all");
 
@@ -38,11 +39,10 @@ export function TransactionsClient({ initialSales }: { initialSales: any[] }) {
 
     // Group the filtered array by Day
     const groupedSales = useMemo(() => {
-        const groups: Record<string, any[]> = {};
+        const groups: Record<string, Sale[]> = {};
 
         filteredSales.forEach(sale => {
             const d = new Date(sale.created_at.replace(' ', 'T') + 'Z');
-            // Format to 'March 5, 2026' style for header
             const dayString = d.toLocaleDateString('en-US', {
                 weekday: 'long',
                 year: 'numeric',
@@ -64,188 +64,207 @@ export function TransactionsClient({ initialSales }: { initialSales: any[] }) {
         });
     }, [filteredSales]);
 
-
     return (
         <>
             {/* Filters Header */}
             <div className="flex-between" style={{ marginBottom: "1.5rem", flexWrap: "wrap", gap: "1rem" }}>
-                <div style={{ position: "relative", flex: "1 1 300px", maxWidth: "400px" }}>
-                    <Search size={18} style={{ position: "absolute", left: "1rem", top: "50%", transform: "translateY(-50%)", color: "var(--text-muted)" }} />
+                <div className="search-box" style={{ width: '100%', maxWidth: '380px' }}>
+                    <Search size={18} style={{ color: 'var(--text-muted)' }} />
                     <input
                         type="text"
-                        placeholder="Search by customer, notes..."
+                        placeholder="Search by customer, notes, amount..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
-                        style={{
-                            width: "100%",
-                            padding: "0.8rem 1rem 0.8rem 2.8rem",
-                            borderRadius: "var(--radius-md)",
-                            background: "rgba(255,255,255,0.03)",
-                            border: "1px solid var(--card-border)",
-                            color: "var(--text-main)",
-                            outline: "none",
-                            transition: "var(--transition)"
-                        }}
-                        onFocus={(e) => e.target.style.borderColor = 'var(--accent)'}
-                        onBlur={(e) => e.target.style.borderColor = 'var(--card-border)'}
                     />
                 </div>
 
                 <div style={{ position: "relative", minWidth: "200px" }}>
-                    <Filter size={18} style={{ position: "absolute", left: "1rem", top: "50%", transform: "translateY(-50%)", color: "var(--text-muted)", pointerEvents: "none" }} />
                     <select
+                        className="input-field"
                         value={statusFilter}
                         onChange={(e) => setStatusFilter(e.target.value)}
-                        style={{
-                            width: "100%",
-                            padding: "0.8rem 1rem 0.8rem 2.8rem",
-                            borderRadius: "var(--radius-md)",
-                            background: "rgba(255,255,255,0.03)",
-                            border: "1px solid var(--card-border)",
-                            color: "var(--text-main)",
-                            colorScheme: "dark",
-                            outline: "none",
-                            appearance: "none",
-                            cursor: "pointer"
-                        }}
+                        style={{ cursor: 'pointer', paddingRight: '2.5rem' }}
                     >
-                        <option value="all" style={{ background: '#0f1012', color: 'white' }}>All Statuses</option>
-                        <option value="paid" style={{ background: '#0f1012', color: 'white' }}>Fully Paid Only</option>
-                        <option value="loan" style={{ background: '#0f1012', color: 'white' }}>Active Loans Only</option>
+                        <option value="all">All Statuses</option>
+                        <option value="paid">Fully Paid Only</option>
+                        <option value="loan">Active Loans Only</option>
                     </select>
                 </div>
             </div>
 
-            <div className="table-container table-responsive">
-                <table style={{ minWidth: '1000px' }}>
+            {/* Desktop Table View */}
+            <div className="table-luxury-container desktop-table-view">
+                <table className="table-luxury" style={{ minWidth: '950px' }}>
                     <thead>
                         <tr>
-                            <th style={{ width: '10%' }}>Time</th>
-                            <th style={{ width: '20%' }}>Customer</th>
-                            <th style={{ width: '10%' }}>Weight</th>
-                            <th style={{ width: '10%' }}>Batch</th>
-                            <th style={{ width: '12%' }}>Final Amount</th>
-                            <th style={{ width: '10%' }}>Status</th>
-                            <th style={{ width: '15%' }}>Comments / Notes</th>
-                            <th style={{ width: '13%', textAlign: 'right' }}>Actions</th>
+                            <th style={{ width: '12%' }}>Time</th>
+                            <th style={{ width: '22%' }}>Customer</th>
+                            <th style={{ width: '12%' }}>Weight</th>
+                            <th style={{ width: '12%' }}>Batch Ref</th>
+                            <th style={{ width: '14%' }}>Final Amount</th>
+                            <th style={{ width: '12%' }}>Status</th>
+                            <th style={{ width: '16%', textAlign: 'right' }}>Actions</th>
                         </tr>
                     </thead>
                     <tbody>
                         {groupedSales.map(([dayString, salesInDay], groupIndex) => (
                             <React.Fragment key={dayString}>
                                 {/* Day-wise Header Separator */}
-                                <tr style={{ background: 'rgba(255,255,255,0.02)' }}>
-                                    <td colSpan={7} style={{ padding: '0.8rem 1rem', fontWeight: 600, color: 'var(--accent)', borderBottom: '1px solid var(--card-border)', borderTop: groupIndex > 0 ? '1px solid var(--card-border)' : 'none' }}>
-                                        {dayString}
+                                <tr>
+                                    <td colSpan={7} style={{ background: 'var(--bg-subtle)', padding: '0.75rem 1.25rem', fontWeight: 700, color: 'var(--text-primary)', borderBottom: '1px solid var(--border-subtle)', borderTop: groupIndex > 0 ? '1px solid var(--border-subtle)' : 'none', fontSize: '0.82rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }} suppressHydrationWarning>
+                                            <Calendar size={14} style={{ color: 'var(--text-secondary)' }} />
+                                            {dayString}
+                                        </div>
                                     </td>
                                 </tr>
 
                                 {/* Transactions for that specific day */}
-                                {salesInDay.map((sale: any) => {
+                                {salesInDay.map((sale: Sale) => {
                                     const d = new Date(sale.created_at.replace(' ', 'T') + 'Z');
                                     const time = d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
                                     const isLoan = sale.balance > 0;
-
-                                    let displayComments = sale.comments;
-                                    let adminInitial = null;
-
-                                    // Creative Admin Tag Extraction
-                                    if (sale.comments && sale.comments.includes('||ADMIN||')) {
-                                        const tagRegex = /\|\|ADMIN\|\|(.*?)\|\|/;
-                                        const match = sale.comments.match(tagRegex);
-                                        if (match && match[1]) {
-                                            adminInitial = match[1].charAt(0).toUpperCase();
-                                        }
-                                        // Strip the tag so it doesn't show in the main text note field
-                                        displayComments = sale.comments.replace(tagRegex, '').trim();
-                                    }
+                                    const isReversed = sale.status === 'REVERSED';
+                                    const initial = sale.customer_name ? sale.customer_name.charAt(0).toUpperCase() : "C";
 
                                     // Prepare Batch Display string
                                     let batchesDisplay = "-";
                                     if (sale.batchesDeducted && sale.batchesDeducted.length > 0) {
-                                        batchesDisplay = sale.batchesDeducted.map((b: any) => `#${b.batch_id}`).join(', ');
+                                        batchesDisplay = sale.batchesDeducted.map((b: SaleBatchAssignment) => `#${b.batch_id}`).join(', ');
                                     }
 
                                     return (
                                         <tr key={sale.id}>
-                                            <td style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>
-                                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-                                                    {adminInitial ? (
-                                                        <div style={{
-                                                            minWidth: '24px', height: '24px', borderRadius: '50%',
-                                                            background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
-                                                            color: 'white',
-                                                            display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                                            fontSize: '0.75rem', fontWeight: '800',
-                                                            boxShadow: '0 2px 8px rgba(16, 185, 129, 0.4)',
-                                                            textShadow: '0 1px 2px rgba(0,0,0,0.3)',
-                                                            border: '1px solid rgba(255,255,255,0.2)'
-                                                        }}>
-                                                            {adminInitial}
-                                                        </div>
-                                                    ) : (
-                                                        <div style={{ minWidth: '24px' }}></div> // Spacer for older unsaved records
-                                                    )}
-                                                    <span>{time}</span>
+                                            <td style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }} suppressHydrationWarning>
+                                                {time}
+                                            </td>
+                                            <td>
+                                                <div style={{ display: 'flex', alignItems: 'center' }}>
+                                                    <span className="customer-avatar-badge">{initial}</span>
+                                                    <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{sale.customer_name}</span>
                                                 </div>
                                             </td>
-                                            <td style={{ fontWeight: 500, fontSize: '1.05rem', color: 'var(--text-main)' }}>{sale.customer_name}</td>
-                                            <td style={{ fontWeight: 600, color: 'var(--accent)' }}>{sale.grams_sold?.toFixed(2)}g</td>
-                                            <td style={{ color: 'var(--text-muted)' }}>{batchesDisplay}</td>
-                                            <td style={{ fontFamily: 'monospace', fontSize: '1.1rem', color: 'var(--text-main)' }}>₹{sale.final_amount?.toFixed(2)}</td>
-                                            <td>
-                                                {isLoan ? (
-                                                    <span className="badge badge-warning">Loan (₹{sale.balance.toFixed(0)})</span>
-                                                ) : (
-                                                    <span className="badge badge-success">Paid</span>
-                                                )}
+                                            <td style={{ fontWeight: 600, color: 'var(--text-primary)' }}>
+                                                {sale.grams_sold?.toFixed(2)}g
+                                            </td>
+                                            <td style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>
+                                                {batchesDisplay}
+                                            </td>
+                                            <td style={{ fontFamily: 'monospace', fontWeight: 700, fontSize: '1.05rem', color: 'var(--text-primary)' }}>
+                                                ₹{sale.final_amount?.toFixed(2)}
                                             </td>
                                             <td>
-                                                {displayComments ? (
-                                                    <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem', color: 'var(--text-muted)', fontSize: '0.85rem', background: 'rgba(255,255,255,0.02)', padding: '0.5rem', borderRadius: '4px', border: '1px solid rgba(255,255,255,0.05)' }}>
-                                                        <FileText size={14} style={{ flexShrink: 0, marginTop: '0.1rem' }} className="text-accent" />
-                                                        <span style={{ fontStyle: 'italic', wordBreak: 'break-word' }}>{displayComments}</span>
-                                                    </div>
+                                                {isReversed ? (
+                                                    <span className="badge-status loan">Reversed</span>
+                                                ) : isLoan ? (
+                                                    <span className="badge-status loan">Loan (₹{sale.balance.toFixed(0)})</span>
                                                 ) : (
-                                                    <span style={{ color: 'var(--text-muted)', fontSize: '0.85rem', opacity: 0.5 }}>-</span>
+                                                    <span className="badge-status paid">Paid</span>
                                                 )}
                                             </td>
                                             <td style={{ textAlign: 'right' }}>
-                                                <div style={{ display: 'inline-flex', gap: '0.4rem', justifyContent: 'flex-end', width: '100%' }}>
+                                                <div style={{ display: 'inline-flex', gap: '0.35rem', justifyContent: 'flex-end' }}>
                                                     <button
                                                         onClick={async () => {
                                                             try {
                                                                 showToast("Generating Official Receipt...", "success");
                                                                 await generateReceipt(sale);
-                                                            } catch (e) {
+                                                            } catch {
                                                                 showToast("Failed to generate PDF", "error");
                                                             }
                                                         }}
-                                                        className="btn btn-icon"
-                                                        title="Download Auto-Generated Receipt"
-                                                        style={{ color: 'var(--text-main)', background: 'rgba(255,255,255,0.05)', border: '1px solid var(--card-border)' }}
+                                                        className="action-icon-btn"
+                                                        title="Download PDF Receipt"
                                                     >
                                                         <DownloadCloud size={16} />
                                                     </button>
-                                                    <EditSaleBtn sale={sale} />
-                                                    <DeleteSaleBtn id={sale.id} />
+                                                    {!isReversed && <EditSaleBtn sale={sale} />}
+                                                    {!isReversed && <DeleteSaleBtn id={sale.id} />}
                                                 </div>
                                             </td>
                                         </tr>
-                                    )
+                                    );
                                 })}
                             </React.Fragment>
                         ))}
 
                         {filteredSales.length === 0 && (
                             <tr>
-                                <td colSpan={7} className="text-center" style={{ padding: '4rem 1rem', color: 'var(--text-muted)' }}>
-                                    No transaction records found matching your filters.
+                                <td colSpan={7} style={{ textAlign: 'center', padding: '4rem 1rem', color: 'var(--text-muted)' }}>
+                                    <Database size={36} style={{ margin: '0 auto 0.75rem', opacity: 0.3 }} />
+                                    <p style={{ margin: 0 }}>No transaction records match your filter.</p>
                                 </td>
                             </tr>
                         )}
                     </tbody>
                 </table>
+            </div>
+
+            {/* Mobile Cards View (< 768px) */}
+            <div className="mobile-cards-view">
+                {filteredSales.map((sale: Sale) => {
+                    const d = new Date(sale.created_at.replace(' ', 'T') + 'Z');
+                    const date = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                    const time = d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+                    const isLoan = sale.balance > 0;
+                    const isReversed = sale.status === 'REVERSED';
+                    const initial = sale.customer_name ? sale.customer_name.charAt(0).toUpperCase() : "C";
+
+                    return (
+                        <div key={`m-tx-${sale.id}`} className="card-light" style={{ padding: '1.125rem' }}>
+                            <div className="flex-between" style={{ marginBottom: '0.65rem' }}>
+                                <div style={{ display: 'flex', alignItems: 'center' }}>
+                                    <span className="customer-avatar-badge">{initial}</span>
+                                    <div>
+                                        <h4 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 600 }}>{sale.customer_name}</h4>
+                                        <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--text-muted)' }} suppressHydrationWarning>{date} · {time}</p>
+                                    </div>
+                                </div>
+                                {isReversed ? (
+                                    <span className="badge-status loan">Reversed</span>
+                                ) : isLoan ? (
+                                    <span className="badge-status loan">Loan</span>
+                                ) : (
+                                    <span className="badge-status paid">Paid</span>
+                                )}
+                            </div>
+
+                            <div className="flex-between" style={{ borderTop: '1px solid var(--bg-subtle)', paddingTop: '0.65rem', marginTop: '0.4rem' }}>
+                                <div>
+                                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Weight: </span>
+                                    <strong style={{ fontSize: '0.9rem' }}>{sale.grams_sold?.toFixed(2)}g</strong>
+                                </div>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                    <span style={{ fontFamily: 'monospace', fontWeight: 700, fontSize: '1.05rem' }}>
+                                        ₹{sale.final_amount?.toFixed(2)}
+                                    </span>
+                                    <button
+                                        onClick={async () => {
+                                            try {
+                                                showToast("Generating Receipt...", "success");
+                                                await generateReceipt(sale);
+                                            } catch {
+                                                showToast("Failed to generate PDF", "error");
+                                            }
+                                        }}
+                                        className="action-icon-btn"
+                                        title="Download PDF"
+                                    >
+                                        <DownloadCloud size={15} />
+                                    </button>
+                                    {!isReversed && <EditSaleBtn sale={sale} />}
+                                    {!isReversed && <DeleteSaleBtn id={sale.id} />}
+                                </div>
+                            </div>
+                        </div>
+                    );
+                })}
+
+                {filteredSales.length === 0 && (
+                    <div className="card-light" style={{ textAlign: 'center', padding: '3rem 1rem' }}>
+                        <p style={{ margin: 0, color: 'var(--text-muted)' }}>No transactions found.</p>
+                    </div>
+                )}
             </div>
         </>
     );

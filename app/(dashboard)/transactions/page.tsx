@@ -7,18 +7,18 @@ export default async function TransactionsPage() {
 
     return (
         <>
-            <div className="flex-between" style={{ marginBottom: "2.5rem" }}>
+            <div className="flex-between" style={{ marginBottom: "2rem" }}>
                 <div>
                     <h1>Master Transactions Log</h1>
-                    <p>Complete historical ledger of all recorded sales and payments.</p>
+                    <p>Complete historical ledger of all recorded inventory sales and loan payments.</p>
                 </div>
-                <div className="glass-card flex-center" style={{ padding: '0.8rem 1.5rem', gap: '0.8rem', background: 'rgba(255,255,255,0.03)' }}>
-                    <Database size={20} className="text-accent" />
-                    <span style={{ fontWeight: 600 }}>{allSales?.length || 0} Total Records</span>
+                <div className="card-light" style={{ padding: '0.75rem 1.25rem', display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                    <Database size={18} style={{ color: 'var(--text-primary)' }} />
+                    <span style={{ fontWeight: 600, fontSize: '0.9rem' }}>{allSales?.length || 0} Total Records</span>
                 </div>
             </div>
 
             <TransactionsClient initialSales={allSales} />
         </>
-    )
+    );
 }

@@ -1,19 +1,77 @@
-# GramFlow
+<div align="center">
+  <img src="public/app-logo.png" alt="GramFlow logo" width="112" />
+  <h1>GramFlow</h1>
+  <p><strong>Inventory, receivables, and accounting—kept in one reliable flow.</strong></p>
+  <p>A production-oriented business management app built with Next.js, TypeScript, and PostgreSQL.</p>
 
-GramFlow is a Next.js 16 / React 19 / TypeScript inventory and customer-receivables application. PostgreSQL is the only runtime database. Server actions call a small business/data layer built on `pg`; React components never open database connections.
+  <p>
+    <img alt="Next.js 16" src="https://img.shields.io/badge/Next.js-16-000000?logo=nextdotjs" />
+    <img alt="React 19" src="https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=111827" />
+    <img alt="TypeScript" src="https://img.shields.io/badge/TypeScript-5-3178C6?logo=typescript&logoColor=white" />
+    <img alt="PostgreSQL" src="https://img.shields.io/badge/PostgreSQL-15%2B-4169E1?logo=postgresql&logoColor=white" />
+    <a href="https://github.com/kashnordeen/GramFlow/actions/workflows/ci.yml"><img alt="CI status" src="https://github.com/kashnordeen/GramFlow/actions/workflows/ci.yml/badge.svg" /></a>
+  </p>
+</div>
+
+---
+
+GramFlow manages stock batches, FIFO sales, customer receivables, payments, accounting journals, user access, and audit history. PostgreSQL is the only runtime database, and all sensitive business operations are enforced on the server.
+
+### Highlights
+
+| Capability | What it provides |
+| --- | --- |
+| 📦 **Concurrency-safe FIFO** | Locks and consumes the oldest eligible stock without overselling. |
+| 🧾 **Sales and receivables** | Tracks payments, outstanding balances, batch lineage, and reversals. |
+| ⚖️ **Double-entry accounting** | Produces balanced, immutable journal entries for financial events. |
+| 🔐 **Authentication and RBAC** | Enforces persisted roles and permissions on every protected operation. |
+| 🛡️ **Immutable audit history** | Records important changes in the same transaction as the business event. |
+| 🧪 **Release verification** | Runs migrations, integration tests, builds, and security audits in CI. |
+
+**Navigate:** [Quick start](#quick-start) · [Architecture](#architecture) · [Demo data](#demonstration-data) · [Data migration](#sqlite-data-migration) · [Security](#rbac-and-authentication) · [Verification](#verification)
 
 ## Architecture
 
-```text
-React UI → Next.js server action / route → authentication + RBAC
-         → business transaction → PostgreSQL pool
-                                 ↘ accounting journal
-                                 ↘ immutable audit log
+```mermaid
+flowchart LR
+    User([User]) --> UI[Next.js React UI]
+    UI --> Boundary[Server Actions and API Routes]
+    Boundary --> Auth{Authenticated and authorized?}
+    Auth -- No --> Denied[Reject request]
+    Auth -- Yes --> Transaction[Business transaction]
+
+    Transaction --> FIFO[FIFO inventory allocation]
+    Transaction --> Sales[Sales and receivables]
+    Transaction --> Ledger[Double-entry journal]
+    Transaction --> Audit[Immutable audit event]
+
+    FIFO --> DB[(PostgreSQL)]
+    Sales --> DB
+    Ledger --> DB
+    Audit --> DB
+
+    DB --> Result[Commit all changes together]
+    Result --> UI
+
+    classDef entry fill:#eff6ff,stroke:#2563eb,color:#172554;
+    classDef security fill:#fff7ed,stroke:#ea580c,color:#431407;
+    classDef service fill:#f0fdf4,stroke:#16a34a,color:#052e16;
+    classDef data fill:#f5f3ff,stroke:#7c3aed,color:#2e1065;
+    class User,UI,Boundary entry;
+    class Auth,Denied security;
+    class Transaction,FIFO,Sales,Ledger,Audit,Result service;
+    class DB data;
 ```
 
-Core business mutations use one PostgreSQL transaction. A sale locks inventory rows, allocates stock, inserts the sale and batch lineage, updates receivables, posts double-entry journals, and writes audit events before a single commit.
+The flow is deliberately simple:
 
-## Local setup
+1. The browser calls a server action or API route; it never connects directly to PostgreSQL.
+2. Authentication and RBAC are checked before the business transaction begins.
+3. Inventory, receivables, accounting, and audit changes commit together—or all roll back together.
+
+For a sale, the transaction locks inventory rows, assigns the oldest stock first, records batch lineage, updates the customer balance, posts balanced journals, and writes the audit event before committing once.
+
+## Quick start
 
 Requirements: Node.js 24 LTS and PostgreSQL 15+. Node 24 is required by the built-in SQLite importer. Docker is optional.
 

@@ -10,6 +10,8 @@ import {
 import { BusinessPulse } from "@/components/dashboard/BusinessPulse";
 import { DashboardEmptyState } from "@/components/dashboard/DashboardEmptyState";
 import { MetricCard } from "@/components/dashboard/MetricCard";
+import { StockHealthPanel } from "@/components/dashboard/StockHealthPanel";
+import { TrendChart } from "@/components/dashboard/TrendChart";
 import styles from "@/components/dashboard/dashboard.module.css";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { Surface } from "@/components/ui/Surface";
@@ -139,6 +141,13 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
               />
             </div>
           </section>
+          <div className={styles.analysisGrid}>
+            <TrendChart period={period} points={metrics.trend} />
+            <StockHealthPanel
+              canViewStock={permissions.includes("inventory.read")}
+              stock={metrics.stock}
+            />
+          </div>
         </>
       )}
     </div>

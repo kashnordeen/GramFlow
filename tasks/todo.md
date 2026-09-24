@@ -182,13 +182,13 @@
 
 **Acceptance criteria:**
 
-- [ ] Trend points map exactly to the selected server series, distinguish series without color alone, and provide a concise accessible summary.
-- [ ] Period controls update the URL and server-rendered data without losing focus context or privacy behavior.
-- [ ] Stock health displays real open batches in FIFO order, with a useful no-stock state and a link to Stock Vault when authorized.
+- [x] Trend points map exactly to the selected server series, distinguish series without color alone, and provide a concise accessible summary.
+- [x] Period controls update the URL and server-rendered data without losing focus context or privacy behavior.
+- [x] Stock health displays real open batches in FIFO order, with a useful no-stock state and a link to Stock Vault when authorized.
 
 **Verification:**
 
-- [ ] Run `npm run lint`, `npm run typecheck`, and the dashboard-focused tests.
+- [x] Run `npm run lint`, `npm run typecheck`, and the dashboard-focused tests.
 - [ ] Keyboard-test period controls and chart detail/tooltips.
 - [ ] Manually compare chart labels and plotted values with seeded server output for 7 and 30 days.
 

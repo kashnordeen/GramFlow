@@ -575,6 +575,325 @@
   color: var(--vault-danger);
 }
 
+.analysisGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.5fr) minmax(320px, 0.75fr);
+  gap: 1rem;
+}
+
+.trendPanel,
+.stockPanel {
+  min-width: 0;
+  border: 1px solid var(--vault-border);
+  border-radius: var(--radius-md);
+  background: var(--vault-surface-1);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.025);
+}
+
+.trendPanel {
+  min-height: 390px;
+  padding: 1.3rem;
+}
+
+.stockPanel {
+  display: flex;
+  min-height: 390px;
+  flex-direction: column;
+  padding: 1.3rem;
+}
+
+.panelHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.panelHeader h2 {
+  margin: 0.3rem 0 0;
+  font-size: 1.05rem;
+  letter-spacing: -0.02em;
+}
+
+.panelKicker {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: var(--vault-text-muted);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+
+.periodTabs {
+  display: inline-flex;
+  padding: 0.2rem;
+  border: 1px solid var(--vault-border);
+  border-radius: var(--radius-sm);
+  background: var(--vault-canvas);
+}
+
+.periodTab {
+  display: grid;
+  min-width: 42px;
+  min-height: 32px;
+  place-items: center;
+  border-radius: 6px;
+  color: var(--vault-text-muted);
+  font-size: 0.7rem;
+  font-weight: 750;
+  text-decoration: none;
+}
+
+.periodTab[aria-current="page"] {
+  background: var(--vault-surface-3);
+  color: var(--vault-lime);
+  box-shadow: inset 0 0 0 1px var(--vault-border-bright);
+}
+
+.chartLegend {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 1rem;
+  margin-top: 0.8rem;
+  color: var(--vault-text-muted);
+  font-size: 0.7rem;
+}
+
+.chartLegend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.chartLegend i {
+  display: inline-block;
+  width: 18px;
+  border-top: 2px solid var(--vault-lime);
+}
+
+.chartLegend i[data-series="profit"] {
+  border-top-color: var(--vault-cyan);
+  border-top-style: dashed;
+}
+
+.chartFrame {
+  position: relative;
+  min-height: 250px;
+  margin-top: 0.25rem;
+}
+
+.trendSvg {
+  display: block;
+  width: 100%;
+  height: 250px;
+  overflow: visible;
+}
+
+.chartGridLine {
+  stroke: var(--vault-border);
+  stroke-width: 1;
+}
+
+.salesLine,
+.profitLine {
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+}
+
+.salesLine {
+  stroke: var(--vault-lime);
+  stroke-width: 2.2;
+}
+
+.profitLine {
+  stroke: var(--vault-cyan);
+  stroke-dasharray: 5 5;
+  stroke-width: 1.8;
+}
+
+.salesPoint,
+.profitPoint {
+  fill: var(--vault-surface-1);
+  vector-effect: non-scaling-stroke;
+}
+
+.salesPoint {
+  stroke: var(--vault-lime);
+  stroke-width: 2;
+}
+
+.profitPoint {
+  stroke: var(--vault-cyan);
+  stroke-width: 1.8;
+}
+
+.salesPoint:focus,
+.profitPoint:focus {
+  outline: none;
+  stroke: var(--vault-text);
+  stroke-width: 4;
+}
+
+.chartFrame[data-masked="true"] .trendSvg {
+  filter: blur(10px);
+  opacity: 0.28;
+}
+
+.chartMask {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  color: var(--vault-text-secondary);
+  font-size: 0.78rem;
+  font-weight: 650;
+}
+
+.chartLabels {
+  display: flex;
+  justify-content: space-between;
+  padding: 0 0.2rem;
+  color: var(--vault-text-muted);
+  font-size: 0.67rem;
+}
+
+.panelEmpty {
+  display: flex;
+  min-height: 230px;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  color: var(--vault-text-muted);
+  text-align: center;
+}
+
+.panelEmpty h3 {
+  margin: 0.8rem 0 0.25rem;
+  font-size: 0.92rem;
+}
+
+.panelEmpty p {
+  max-width: 310px;
+  font-size: 0.78rem;
+}
+
+.panelEmpty a {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin-top: 1rem;
+  color: var(--vault-lime);
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.batchList {
+  display: grid;
+  gap: 0.45rem;
+  margin-top: 1rem;
+  list-style: none;
+}
+
+.batchItem {
+  padding: 0.72rem 0.75rem;
+  border: 1px solid var(--vault-border);
+  border-radius: var(--radius-sm);
+  background: var(--vault-canvas);
+}
+
+.batchTopline,
+.batchMeta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.65rem;
+}
+
+.batchTopline {
+  color: var(--vault-text-secondary);
+  font-size: 0.74rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.batchTopline strong {
+  color: var(--vault-text);
+}
+
+.batchTopline em {
+  margin-left: 0.35rem;
+  color: var(--vault-lime);
+  font-size: 0.58rem;
+  font-style: normal;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.batchTrack {
+  display: block;
+  width: 100%;
+  height: 4px;
+  margin: 0.55rem 0;
+  overflow: hidden;
+  border: 0;
+  border-radius: var(--radius-full);
+  background: var(--vault-surface-3);
+  color: var(--vault-lime);
+  appearance: none;
+}
+
+.batchTrack::-webkit-progress-bar {
+  border-radius: var(--radius-full);
+  background: var(--vault-surface-3);
+}
+
+.batchTrack::-webkit-progress-value {
+  border-radius: var(--radius-full);
+  background: var(--vault-lime);
+}
+
+.batchTrack::-moz-progress-bar {
+  border-radius: var(--radius-full);
+  background: var(--vault-lime);
+}
+
+.batchMeta {
+  color: var(--vault-text-muted);
+  font-size: 0.64rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.batchMeta span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.panelLink {
+  display: inline-flex;
+  align-items: center;
+  align-self: flex-start;
+  gap: 0.4rem;
+  margin-top: auto;
+  padding-top: 1rem;
+  color: var(--vault-text-secondary);
+  font-size: 0.75rem;
+  font-weight: 650;
+  text-decoration: none;
+}
+
+.panelLink:hover {
+  color: var(--vault-lime);
+}
+
 .dataPreviewGrid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -729,6 +1048,10 @@
 
   .dataPreviewGrid {
     grid-template-columns: 1fr 1fr;
+  }
+
+  .analysisGrid {
+    grid-template-columns: 1fr;
   }
 }
 

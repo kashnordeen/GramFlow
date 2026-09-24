@@ -6,6 +6,7 @@ import {
   normalizeDashboardPeriod,
   percentageChange,
 } from "../lib/dashboard";
+import { getTrendChartModel } from "../lib/dashboard-chart";
 
 test("dashboard period accepts only the supported 7 and 30 day ranges", () => {
   assert.equal(normalizeDashboardPeriod("30"), 30);
@@ -40,4 +41,17 @@ test("dashboard state preserves useful partial data", () => {
     getDashboardDataState({ hasCustomers: true, hasSales: true, hasStock: true }),
     "ready",
   );
+});
+
+test("trend chart geometry preserves point order and handles a zero series", () => {
+  const model = getTrendChartModel([
+    { date: "2026-09-23", profit: 0, sales: 0 },
+    { date: "2026-09-24", profit: 25, sales: 100 },
+  ]);
+
+  assert.equal(model.sales.length, 2);
+  assert.equal(model.profit.length, 2);
+  assert.equal(model.sales[0].x, model.profit[0].x);
+  assert.ok(model.sales[1].y < model.profit[1].y);
+  assert.equal(model.maxValue, 100);
 });

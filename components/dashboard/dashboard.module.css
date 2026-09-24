@@ -1,0 +1,437 @@
+.page {
+  display: grid;
+  gap: 1.5rem;
+  width: 100%;
+}
+
+.pageHeader {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1rem;
+  min-height: 72px;
+}
+
+.eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.45rem;
+  color: var(--vault-lime);
+  font-size: 0.72rem;
+  font-weight: 720;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.eyebrow::before {
+  width: 22px;
+  height: 1px;
+  background: currentColor;
+  content: "";
+}
+
+.pageTitle {
+  max-width: 760px;
+  margin: 0;
+  font-size: clamp(1.8rem, 3vw, 2.85rem);
+  letter-spacing: -0.045em;
+  line-height: 1.02;
+}
+
+.pageDescription {
+  max-width: 620px;
+  margin-top: 0.65rem;
+  color: var(--vault-text-secondary);
+}
+
+.contextPill {
+  display: inline-flex;
+  min-height: 38px;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0 0.85rem;
+  border: 1px solid var(--vault-border);
+  border-radius: var(--radius-full);
+  background: rgb(17 23 20 / 0.86);
+  color: var(--vault-text-secondary);
+  font-size: 0.78rem;
+}
+
+.contextDot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--vault-success);
+  box-shadow: 0 0 0 4px rgb(83 214 138 / 0.1);
+}
+
+.emptyState {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(220px, 0.7fr) minmax(420px, 1.3fr);
+  gap: 2rem 3rem;
+  overflow: hidden;
+  padding: clamp(1.4rem, 4vw, 3rem);
+}
+
+.emptyState::after {
+  position: absolute;
+  top: -100px;
+  left: -80px;
+  width: 320px;
+  height: 320px;
+  border: 1px solid rgb(199 255 54 / 0.12);
+  border-radius: 50%;
+  box-shadow: 0 0 90px rgb(199 255 54 / 0.06);
+  content: "";
+  pointer-events: none;
+}
+
+.emptyCopy {
+  position: relative;
+  z-index: 1;
+  align-self: center;
+}
+
+.emptyCopy h2 {
+  max-width: 330px;
+  margin: 1.2rem 0 0.75rem;
+  font-size: clamp(1.65rem, 3vw, 2.5rem);
+  letter-spacing: -0.04em;
+}
+
+.emptyCopy p {
+  max-width: 430px;
+}
+
+.emptySignal {
+  position: absolute;
+  top: 1.5rem;
+  right: 1.5rem;
+  display: grid;
+  width: 58px;
+  height: 58px;
+  place-items: center;
+  border: 1px solid rgb(199 255 54 / 0.22);
+  border-radius: 50%;
+  background: rgb(199 255 54 / 0.07);
+  color: var(--vault-lime);
+}
+
+.setupSteps {
+  display: grid;
+  gap: 0.75rem;
+  list-style: none;
+}
+
+.setupStep {
+  display: grid;
+  grid-template-columns: 28px 34px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.85rem;
+  min-height: 88px;
+  padding: 1rem;
+  border: 1px solid var(--vault-border);
+  border-radius: var(--radius-md);
+  background: rgb(8 11 10 / 0.46);
+}
+
+.setupStep h3 {
+  margin: 0 0 0.18rem;
+  font-size: 0.94rem;
+}
+
+.setupStep p {
+  max-width: 430px;
+  font-size: 0.8rem;
+}
+
+.stepNumber {
+  display: grid;
+  width: 26px;
+  height: 26px;
+  place-items: center;
+  border: 1px solid var(--vault-border-bright);
+  border-radius: 50%;
+  color: var(--vault-text-secondary);
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.stepIcon {
+  color: var(--vault-cyan);
+}
+
+.inlineAction {
+  display: inline-flex;
+  min-height: 36px;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0 0.75rem;
+  border-radius: var(--radius-sm);
+  background: var(--vault-lime);
+  color: var(--vault-canvas);
+  font-size: 0.78rem;
+  font-weight: 760;
+  text-decoration: none;
+  transition: var(--transition);
+}
+
+.inlineAction:hover {
+  background: var(--vault-lime-strong);
+  transform: translateY(-1px);
+}
+
+.permissionNote {
+  max-width: 110px;
+  color: var(--vault-text-muted);
+  font-size: 0.72rem;
+  text-align: right;
+}
+
+.partialBanner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.9rem 1rem;
+  border: 1px solid rgb(64 228 212 / 0.2);
+  border-radius: var(--radius-md);
+  background: rgb(64 228 212 / 0.055);
+}
+
+.partialBanner strong {
+  display: block;
+  margin-bottom: 0.18rem;
+  font-size: 0.88rem;
+}
+
+.partialBanner p {
+  font-size: 0.78rem;
+}
+
+.dataPreviewGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.dataPreview {
+  min-height: 178px;
+  padding: 1.25rem;
+}
+
+.dataPreviewTop {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.dataPreviewTop h2 {
+  margin: 0;
+  font-size: 0.86rem;
+  letter-spacing: 0;
+}
+
+.previewValue {
+  margin: 1.5rem 0 0.35rem;
+  color: var(--vault-text);
+  font-size: clamp(1.7rem, 4vw, 2.4rem);
+  font-variant-numeric: tabular-nums;
+  font-weight: 670;
+  letter-spacing: -0.04em;
+}
+
+.previewEmpty {
+  margin-top: 1.4rem;
+  color: var(--vault-text-muted);
+  font-size: 0.82rem;
+}
+
+.errorState {
+  display: grid;
+  max-width: 760px;
+  min-height: 340px;
+  place-items: center;
+  margin: 2rem auto;
+  padding: 2rem;
+  text-align: center;
+}
+
+.errorIcon {
+  display: grid;
+  width: 62px;
+  height: 62px;
+  place-items: center;
+  margin: 0 auto 1.25rem;
+  border: 1px solid rgb(255 92 104 / 0.26);
+  border-radius: 50%;
+  background: rgb(255 92 104 / 0.08);
+  color: var(--vault-danger);
+}
+
+.errorState h1 {
+  margin-bottom: 0.65rem;
+}
+
+.errorState p {
+  max-width: 470px;
+}
+
+.retryLink {
+  display: inline-flex;
+  min-height: 40px;
+  align-items: center;
+  gap: 0.45rem;
+  margin-top: 1.35rem;
+  padding: 0 1rem;
+  border: 1px solid var(--vault-border-bright);
+  border-radius: var(--radius-sm);
+  color: var(--vault-text);
+  text-decoration: none;
+}
+
+.skeletonHeader,
+.skeletonHero,
+.skeletonCard,
+.skeletonPanel {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid var(--vault-border);
+  border-radius: var(--radius-md);
+  background: var(--vault-surface-1);
+}
+
+.skeletonHeader {
+  width: min(520px, 80%);
+  height: 70px;
+}
+
+.skeletonFeatureGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.55fr) minmax(340px, 0.9fr);
+  gap: 1rem;
+}
+
+.skeletonHero {
+  min-height: 360px;
+  border-radius: var(--radius-lg);
+}
+
+.skeletonCards {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.skeletonCard {
+  min-height: 172px;
+}
+
+.skeletonPanels {
+  display: grid;
+  grid-template-columns: 1.5fr 1fr;
+  gap: 1rem;
+}
+
+.skeletonPanel {
+  min-height: 260px;
+}
+
+.skeletonHeader::after,
+.skeletonHero::after,
+.skeletonCard::after,
+.skeletonPanel::after {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(105deg, transparent 35%, rgb(255 255 255 / 0.045) 50%, transparent 65%);
+  content: "";
+  animation: skeletonSweep 1.4s ease-in-out infinite;
+  transform: translateX(-100%);
+}
+
+@keyframes skeletonSweep {
+  to { transform: translateX(100%); }
+}
+
+@media (max-width: 900px) {
+  .emptyState,
+  .skeletonFeatureGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .dataPreviewGrid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .page {
+    gap: 1rem;
+  }
+
+  .pageHeader {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .pageTitle {
+    font-size: 1.85rem;
+  }
+
+  .contextPill {
+    display: none;
+  }
+
+  .emptyState {
+    padding: 1.1rem;
+  }
+
+  .emptyCopy {
+    padding-right: 3rem;
+  }
+
+  .emptySignal {
+    top: 1rem;
+    right: 1rem;
+    width: 46px;
+    height: 46px;
+  }
+
+  .setupStep {
+    grid-template-columns: 26px 1fr;
+  }
+
+  .stepIcon {
+    display: none;
+  }
+
+  .setupStep > :last-child {
+    grid-column: 2;
+    justify-self: start;
+  }
+
+  .permissionNote {
+    max-width: none;
+    text-align: left;
+  }
+
+  .dataPreviewGrid,
+  .skeletonCards,
+  .skeletonPanels {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skeletonHeader::after,
+  .skeletonHero::after,
+  .skeletonCard::after,
+  .skeletonPanel::after {
+    animation: none;
+    transform: none;
+  }
+}

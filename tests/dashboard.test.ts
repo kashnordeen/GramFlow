@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
+  getDashboardDataState,
   getStockStatus,
   normalizeDashboardPeriod,
   percentageChange,
@@ -24,4 +25,19 @@ test("stock status follows the existing five gram warning threshold", () => {
   assert.equal(getStockStatus(0), "critical");
   assert.equal(getStockStatus(4.999), "warning");
   assert.equal(getStockStatus(5), "healthy");
+});
+
+test("dashboard state preserves useful partial data", () => {
+  assert.equal(
+    getDashboardDataState({ hasCustomers: false, hasSales: false, hasStock: false }),
+    "empty",
+  );
+  assert.equal(
+    getDashboardDataState({ hasCustomers: true, hasSales: false, hasStock: false }),
+    "partial",
+  );
+  assert.equal(
+    getDashboardDataState({ hasCustomers: true, hasSales: true, hasStock: true }),
+    "ready",
+  );
 });

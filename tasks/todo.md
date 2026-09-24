@@ -121,13 +121,13 @@
 
 **Acceptance criteria:**
 
-- [ ] A fully empty business sees the three-step Add Stock, Create Customer, Record Sale setup path instead of decorative zero charts.
-- [ ] Partial data renders populated panels while explaining and linking from missing panels; errors do not expose database internals.
-- [ ] Loading skeletons match final geometry, use `aria-busy`, and avoid layout shift.
+- [x] A fully empty business sees the three-step Add Stock, Create Customer, Record Sale setup path instead of decorative zero charts.
+- [x] Partial data renders populated panels while explaining and linking from missing panels; errors do not expose database internals.
+- [x] Loading skeletons match final geometry, use `aria-busy`, and avoid layout shift.
 
 **Verification:**
 
-- [ ] Run `npm run lint` and `npm run typecheck`.
+- [x] Run `npm run lint` and `npm run typecheck`.
 - [ ] Manually render full-empty, partial-empty, loading, and forced-error fixtures/states.
 - [ ] Confirm the sidebar, command bar, and profile menu remain usable during dashboard failure.
 

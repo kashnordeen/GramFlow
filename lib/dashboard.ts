@@ -29,6 +29,17 @@ export function getStockStatus(totalGrams: number): DashboardStockStatus {
   return "healthy";
 }
 
+export type DashboardDataState = "empty" | "partial" | "ready";
+
+export function getDashboardDataState(
+  setup: DashboardMetrics["setup"],
+): DashboardDataState {
+  const configuredAreas = [setup.hasCustomers, setup.hasSales, setup.hasStock];
+  if (configuredAreas.every((area) => !area)) return "empty";
+  if (configuredAreas.every(Boolean)) return "ready";
+  return "partial";
+}
+
 interface StockSummaryRow extends QueryResultRow {
   oldest_age_days: number;
   open_batch_count: number;

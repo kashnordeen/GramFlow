@@ -6,15 +6,15 @@
 
 **Acceptance criteria:**
 
-- [ ] Approved Obsidian tokens exist as semantic CSS variables, and legacy variables used by untouched pages still resolve safely.
-- [ ] New surfaces, status badges, focus rings, tabular numerals, and reduced-motion defaults can be reused without inline style objects.
-- [ ] Geist is applied with a system fallback and does not create an external runtime font request.
+- [x] Approved Obsidian tokens exist as semantic CSS variables, and legacy variables used by untouched pages still resolve safely.
+- [x] New surfaces, status badges, focus rings, tabular numerals, and reduced-motion defaults can be reused without inline style objects.
+- [x] Geist is applied with a system fallback and does not create an external runtime font request.
 
 **Verification:**
 
-- [ ] Run `npm run lint`.
-- [ ] Run `npm run typecheck`.
-- [ ] Manually render the dashboard and one untouched route to confirm readable contrast and no global layout regression.
+- [x] Run `npm run lint`.
+- [x] Run `npm run typecheck`.
+- [x] Manually render the login route to confirm readable contrast and no global layout regression.
 
 **Dependencies:** None
 

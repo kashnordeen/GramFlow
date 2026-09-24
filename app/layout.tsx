@@ -2,19 +2,19 @@ import type { Metadata, Viewport } from 'next'
 import './globals.css'
 
 export const viewport: Viewport = {
-  themeColor: '#F7F8F5',
+  themeColor: '#080B0A',
   width: 'device-width',
   initialScale: 1,
   maximumScale: 1,
 }
 
 export const metadata: Metadata = {
-  title: 'GramFlow — Inventory & Loans',
-  description: 'Premium Inventory and Loan Management Control Panel',
+  title: 'GramFlow | Inventory and receivables',
+  description: 'Inventory, receivables, and accounting in one reliable flow.',
   manifest: '/manifest.json',
   appleWebApp: {
     capable: true,
-    statusBarStyle: 'default',
+    statusBarStyle: 'black-translucent',
     title: 'GramFlow',
   },
 }

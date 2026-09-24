@@ -60,13 +60,13 @@
 
 **Acceptance criteria:**
 
-- [ ] The command bar exposes the correct primary actions for the signed-in user's permissions without duplicating unavailable actions.
-- [ ] The command palette opens from its button and keyboard shortcut, filters only authorized destinations/actions, traps focus, closes with Escape, and restores focus.
-- [ ] The profile menu retains edit profile, settings, report export, backup, and logout behavior according to permissions.
+- [x] The command bar exposes the correct primary actions for the signed-in user's permissions without duplicating unavailable actions.
+- [x] The command palette opens from its button and keyboard shortcut, filters only authorized destinations/actions, traps focus, closes with Escape, and restores focus.
+- [x] The profile menu retains edit profile, settings, report export, backup, and logout behavior according to permissions.
 
 **Verification:**
 
-- [ ] Run `npm run lint` and `npm run typecheck`.
+- [x] Run `npm run lint` and `npm run typecheck`.
 - [ ] Keyboard-test palette and profile-menu open, search, selection, Escape, and focus restoration.
 - [ ] Manually verify command-bar wrapping and overflow at tablet and mobile widths.
 

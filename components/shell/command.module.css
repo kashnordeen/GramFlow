@@ -1,0 +1,461 @@
+.commandBar,
+.mobileHeader {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  align-items: center;
+  border-bottom: 1px solid var(--vault-border);
+  background: rgb(8 11 10 / 0.82);
+  backdrop-filter: blur(18px) saturate(120%);
+}
+
+.commandBar {
+  display: grid;
+  min-height: 72px;
+  grid-template-columns: minmax(190px, 1fr) minmax(260px, 420px) minmax(320px, 1fr);
+  gap: 20px;
+  padding: 10px 28px;
+}
+
+.pageContext {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 11px;
+}
+
+.contextIcon {
+  display: inline-flex;
+  width: 38px;
+  height: 38px;
+  flex: 0 0 38px;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgb(199 255 54 / 0.18);
+  border-radius: var(--radius-sm);
+  background: rgb(199 255 54 / 0.07);
+  color: var(--vault-lime);
+}
+
+.pageContext strong,
+.pageContext span {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pageContext strong {
+  color: var(--vault-text);
+  font-size: 0.875rem;
+}
+
+.pageContext span {
+  margin-top: 2px;
+  color: var(--vault-text-muted);
+  font-size: 0.7rem;
+}
+
+.commandTrigger {
+  display: flex;
+  min-height: 44px;
+  align-items: center;
+  gap: 9px;
+  border: 1px solid var(--vault-border);
+  border-radius: var(--radius-md);
+  padding: 0 10px 0 13px;
+  background: var(--vault-surface-1);
+  color: var(--vault-text-muted);
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.commandTrigger:hover {
+  border-color: var(--vault-border-bright);
+  background: var(--vault-surface-2);
+  color: var(--vault-text-secondary);
+}
+
+.commandTrigger span {
+  min-width: 0;
+  flex: 1;
+  overflow: hidden;
+  text-align: left;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.commandTrigger kbd {
+  border: 1px solid var(--vault-border-bright);
+  border-radius: 6px;
+  padding: 3px 6px;
+  background: var(--vault-canvas);
+  color: var(--vault-text-muted);
+  font-family: inherit;
+  font-size: 0.65rem;
+}
+
+.actions {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.actionLink,
+.primaryAction {
+  display: inline-flex;
+  min-height: 42px;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border-radius: var(--radius-sm);
+  padding: 0 14px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: var(--transition);
+}
+
+.actionLink {
+  border: 1px solid var(--vault-border-bright);
+  background: var(--vault-surface-1);
+  color: var(--vault-text-secondary);
+}
+
+.actionLink:hover {
+  background: var(--vault-surface-2);
+  color: var(--vault-text);
+}
+
+.primaryAction {
+  border: 1px solid var(--vault-lime);
+  background: var(--vault-lime);
+  color: var(--vault-canvas);
+}
+
+.primaryAction:hover {
+  border-color: var(--vault-lime-strong);
+  background: var(--vault-lime-strong);
+  box-shadow: 0 8px 24px rgb(199 255 54 / 0.13);
+}
+
+.palette {
+  width: min(620px, calc(100vw - 32px));
+  max-height: min(620px, calc(100dvh - 80px));
+  margin: 10dvh auto 0;
+  overflow: hidden;
+  border: 1px solid var(--vault-border-bright);
+  border-radius: var(--radius-lg);
+  padding: 0;
+  background: var(--vault-surface-1);
+  color: var(--vault-text);
+  box-shadow: var(--shadow-lg);
+}
+
+.palette::backdrop {
+  background: rgb(0 0 0 / 0.66);
+  backdrop-filter: blur(7px);
+}
+
+.paletteHeader {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border-bottom: 1px solid var(--vault-border);
+  padding: 12px 14px;
+  color: var(--vault-text-muted);
+}
+
+.paletteHeader input {
+  min-width: 0;
+  flex: 1;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--vault-text);
+  font-size: 1rem;
+}
+
+.paletteHeader input::placeholder {
+  color: var(--vault-text-muted);
+}
+
+.paletteHeader button {
+  display: inline-flex;
+  width: 38px;
+  height: 38px;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--vault-text-muted);
+  cursor: pointer;
+}
+
+.paletteHeader button:hover {
+  background: var(--vault-surface-2);
+  color: var(--vault-text);
+}
+
+.paletteBody {
+  max-height: 430px;
+  overflow-y: auto;
+  padding: 12px;
+}
+
+.paletteLabel {
+  margin: 2px 6px 9px;
+  color: var(--vault-text-muted);
+  font-size: 0.68rem;
+  font-weight: 750;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.commandList {
+  display: grid;
+  gap: 4px;
+}
+
+.commandList a {
+  display: grid;
+  min-height: 50px;
+  grid-template-columns: 34px 1fr auto;
+  align-items: center;
+  gap: 10px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+  padding: 5px 10px;
+  color: var(--vault-text-secondary);
+  text-decoration: none;
+  transition: var(--transition);
+}
+
+.commandList a:hover,
+.commandList a:focus-visible {
+  border-color: var(--vault-border);
+  background: var(--vault-surface-2);
+  color: var(--vault-text);
+}
+
+.commandIcon {
+  display: inline-flex;
+  width: 34px;
+  height: 34px;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-sm);
+  background: rgb(199 255 54 / 0.07);
+  color: var(--vault-lime);
+}
+
+.noResults {
+  padding: 32px 16px;
+  text-align: center;
+}
+
+.account {
+  position: relative;
+  flex: 0 0 auto;
+}
+
+.account summary {
+  display: flex;
+  min-height: 42px;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid var(--vault-border);
+  border-radius: var(--radius-full);
+  padding: 4px 10px 4px 4px;
+  background: var(--vault-surface-1);
+  color: var(--vault-text);
+  cursor: pointer;
+  list-style: none;
+}
+
+.account summary::-webkit-details-marker {
+  display: none;
+}
+
+.account[open] summary {
+  border-color: var(--vault-border-bright);
+}
+
+.avatar {
+  display: inline-flex;
+  width: 32px;
+  height: 32px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: var(--vault-lime);
+  color: var(--vault-canvas);
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.accountName {
+  max-width: 110px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.accountMenu {
+  position: absolute;
+  top: calc(100% + 9px);
+  right: 0;
+  z-index: 70;
+  display: grid;
+  width: 250px;
+  gap: 3px;
+  border: 1px solid var(--vault-border-bright);
+  border-radius: var(--radius-md);
+  padding: 7px;
+  background: var(--vault-surface-1);
+  box-shadow: var(--shadow-md);
+}
+
+.accountIdentity {
+  display: grid;
+  gap: 2px;
+  margin-bottom: 4px;
+  border-bottom: 1px solid var(--vault-border);
+  padding: 8px 9px 11px;
+}
+
+.accountIdentity span,
+.accountIdentity small {
+  color: var(--vault-text-muted);
+  font-size: 0.68rem;
+}
+
+.accountIdentity strong {
+  overflow: hidden;
+  color: var(--vault-text);
+  font-size: 0.78rem;
+  text-overflow: ellipsis;
+}
+
+.accountMenu > a,
+.accountMenu > button {
+  display: flex;
+  min-height: 42px;
+  align-items: center;
+  gap: 9px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  padding: 0 10px;
+  background: transparent;
+  color: var(--vault-text-secondary);
+  cursor: pointer;
+  font-size: 0.78rem;
+  font-weight: 600;
+  text-align: left;
+  text-decoration: none;
+}
+
+.accountMenu > a:hover,
+.accountMenu > button:hover {
+  background: var(--vault-surface-2);
+  color: var(--vault-text);
+}
+
+.accountMenu > button.logout {
+  border-top: 1px solid var(--vault-border);
+  border-radius: 0 0 var(--radius-sm) var(--radius-sm);
+  color: var(--vault-danger);
+}
+
+.accountMenu > button:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}
+
+.mobileHeader {
+  display: none;
+}
+
+.visuallyHidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+@media (max-width: 1100px) {
+  .commandBar {
+    grid-template-columns: minmax(170px, 1fr) minmax(220px, 340px) auto;
+    gap: 12px;
+    padding-inline: 20px;
+  }
+
+  .actionLink span,
+  .primaryAction span,
+  .accountName {
+    display: none;
+  }
+
+  .actionLink,
+  .primaryAction {
+    width: 42px;
+    padding: 0;
+  }
+}
+
+@media (max-width: 767px) {
+  .commandBar {
+    display: none;
+  }
+
+  .mobileHeader {
+    display: flex;
+    min-height: 64px;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 8px 14px;
+  }
+
+  .mobileBrand {
+    display: flex;
+    min-width: 0;
+    align-items: center;
+    gap: 9px;
+    color: var(--vault-text);
+    text-decoration: none;
+  }
+
+  .mobileBrand img {
+    border: 1px solid var(--vault-border-bright);
+    border-radius: var(--radius-sm);
+  }
+
+  .mobileBrand strong,
+  .mobileBrand span {
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .mobileBrand strong {
+    font-size: 0.82rem;
+  }
+
+  .mobileBrand span {
+    color: var(--vault-text-muted);
+    font-size: 0.66rem;
+  }
+
+  .palette {
+    margin-top: 8dvh;
+  }
+}

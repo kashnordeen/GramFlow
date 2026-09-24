@@ -63,6 +63,15 @@ export function getAllowedNavigationItems(permissions: string[]): NavigationItem
   return getNavigationGroups(permissions).flatMap((group) => group.items);
 }
 
+export function filterNavigationItems(
+  items: NavigationItem[],
+  query: string,
+): NavigationItem[] {
+  const normalizedQuery = query.trim().toLocaleLowerCase();
+  if (!normalizedQuery) return items;
+  return items.filter((item) => item.label.toLocaleLowerCase().includes(normalizedQuery));
+}
+
 export function isRouteActive(pathname: string, href: string): boolean {
   if (href === "/") return pathname === "/";
   return pathname === href || pathname.startsWith(`${href}/`);

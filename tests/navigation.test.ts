@@ -1,6 +1,8 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
+  filterNavigationItems,
+  getAllowedNavigationItems,
   getNavigationGroups,
   isRouteActive,
 } from "../components/shell/navigation";
@@ -45,4 +47,18 @@ test("active routes match nested destinations without matching unrelated prefixe
   assert.equal(isRouteActive("/customers/42", "/customers"), true);
   assert.equal(isRouteActive("/customer-support", "/customers"), false);
   assert.equal(isRouteActive("/transactions", "/"), false);
+});
+
+test("command search filters only the already-authorized destination set", () => {
+  const authorizedItems = getAllowedNavigationItems(["sales.read", "customers.read"]);
+
+  assert.deepEqual(
+    filterNavigationItems(authorizedItems, "trans").map((item) => item.href),
+    ["/transactions"],
+  );
+  assert.deepEqual(
+    filterNavigationItems(authorizedItems, "stock").map((item) => item.href),
+    [],
+  );
+  assert.equal(filterNavigationItems(authorizedItems, "  ").length, authorizedItems.length);
 });

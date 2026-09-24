@@ -155,13 +155,13 @@
 
 **Acceptance criteria:**
 
-- [ ] Business Pulse clearly displays inventory amount and Healthy, Low, or Out of stock status, with a permission-aware Add Stock action for low/zero conditions.
-- [ ] KPI cards use real values and honest comparisons, remain readable while masked, and use icons/text in addition to color.
-- [ ] Pointer depth stays within 2–3 degrees, uses transform-only updates, and is disabled for touch/reduced-motion contexts.
+- [x] Business Pulse clearly displays inventory amount and Healthy, Low, or Out of stock status, with a permission-aware Add Stock action for low/zero conditions.
+- [x] KPI cards use real values and honest comparisons, remain readable while masked, and use icons/text in addition to color.
+- [x] Pointer depth stays within 2–3 degrees, uses transform-only updates, and is disabled for touch/reduced-motion contexts.
 
 **Verification:**
 
-- [ ] Run `npm run lint` and `npm run typecheck`.
+- [x] Run `npm run lint` and `npm run typecheck`.
 - [ ] Manually verify healthy, low, zero, masked, keyboard-focus, touch, and reduced-motion states.
 - [ ] Inspect the browser performance timeline for continuous layout/recalculate-style work while idle.
 

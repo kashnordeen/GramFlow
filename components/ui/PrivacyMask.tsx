@@ -5,9 +5,10 @@ import { usePrivacy } from "@/components/PrivacyProvider";
 export function PrivacyMask({ children }: { children: React.ReactNode }) {
     const { isVisible } = usePrivacy();
 
-    if (!isVisible) {
-        return <span style={{ fontFamily: 'monospace', letterSpacing: '2px' }}>****</span>;
-    }
-
-    return <>{children}</>;
+    return (
+        <span className="privacy-value" data-hidden={!isVisible}>
+            <span aria-hidden={!isVisible}>{children}</span>
+            {!isVisible && <span className="sr-only">Hidden value</span>}
+        </span>
+    );
 }

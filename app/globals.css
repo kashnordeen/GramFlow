@@ -230,6 +230,48 @@ p {
   color: var(--vault-cyan);
 }
 
+.privacy-value {
+  position: relative;
+  display: inline-block;
+}
+
+.privacy-value[data-hidden="true"] > span:first-child {
+  opacity: 0;
+  user-select: none;
+}
+
+.privacy-value[data-hidden="true"]::after {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  color: var(--vault-text-muted);
+  content: "••••";
+  font-family: ui-monospace, "Cascadia Mono", monospace;
+  font-size: 0.7em;
+  letter-spacing: 0.12em;
+}
+
+.privacy-toggle {
+  display: inline-grid;
+  width: 38px;
+  height: 38px;
+  flex: 0 0 auto;
+  place-items: center;
+  border: 1px solid var(--vault-border);
+  border-radius: var(--radius-full);
+  background: var(--vault-surface-1);
+  color: var(--vault-text-secondary);
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.privacy-toggle:hover {
+  border-color: var(--vault-border-bright);
+  background: var(--vault-surface-2);
+  color: var(--vault-text);
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

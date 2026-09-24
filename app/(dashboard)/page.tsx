@@ -1,9 +1,19 @@
 import Link from "next/link";
-import { AlertTriangle, ArrowUpRight, CircleGauge } from "lucide-react";
+import {
+  AlertTriangle,
+  ArrowUpRight,
+  CircleDollarSign,
+  PackageOpen,
+  ReceiptIndianRupee,
+  WalletCards,
+} from "lucide-react";
+import { BusinessPulse } from "@/components/dashboard/BusinessPulse";
 import { DashboardEmptyState } from "@/components/dashboard/DashboardEmptyState";
+import { MetricCard } from "@/components/dashboard/MetricCard";
 import styles from "@/components/dashboard/dashboard.module.css";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { Surface } from "@/components/ui/Surface";
+import { PrivacyToggleButton } from "@/components/ui/PrivacyToggleButton";
 import { getDashboardMetrics } from "@/lib/actions/dashboard.actions";
 import { getSessionUser } from "@/lib/actions/auth.actions";
 import { getDashboardDataState, normalizeDashboardPeriod } from "@/lib/dashboard";
@@ -58,10 +68,13 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
             that need your attention.
           </p>
         </div>
-        <span className={styles.contextPill}>
-          <span className={styles.contextDot} aria-hidden="true" />
-          Live data · {period} day view
-        </span>
+        <div className={styles.headerTools}>
+          <span className={styles.contextPill}>
+            <span className={styles.contextDot} aria-hidden="true" />
+            Live data · {period} day view
+          </span>
+          <PrivacyToggleButton />
+        </div>
       </header>
 
       {dataState === "empty" ? (
@@ -78,40 +91,53 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
             </aside>
           )}
 
-          <section className={styles.dataPreviewGrid} aria-label="Available business data">
-            <Surface as="article" className={styles.dataPreview}>
-              <div className={styles.dataPreviewTop}>
-                <h2>Inventory signal</h2>
-                <StatusBadge tone={metrics.stock.status}>{metrics.stock.status}</StatusBadge>
-              </div>
-              {metrics.setup.hasStock ? (
-                <p className={styles.previewValue}>{metrics.stock.totalGrams.toFixed(2)}g</p>
-              ) : (
-                <p className={styles.previewEmpty}>No open stock batch yet.</p>
-              )}
-            </Surface>
-            <Surface as="article" className={styles.dataPreview}>
-              <div className={styles.dataPreviewTop}>
-                <h2>Sales signal</h2>
-                <CircleGauge size={18} aria-hidden="true" />
-              </div>
-              {metrics.setup.hasSales ? (
-                <p className={styles.previewValue}>{metrics.salesToday.count} today</p>
-              ) : (
-                <p className={styles.previewEmpty}>No posted sales to chart yet.</p>
-              )}
-            </Surface>
-            <Surface as="article" className={styles.dataPreview}>
-              <div className={styles.dataPreviewTop}>
-                <h2>Customer signal</h2>
-                <StatusBadge tone="neutral">Balance book</StatusBadge>
-              </div>
-              {metrics.setup.hasCustomers ? (
-                <p className={styles.previewValue}>{metrics.receivables.customerCount} active</p>
-              ) : (
-                <p className={styles.previewEmpty}>No customer profiles yet.</p>
-              )}
-            </Surface>
+          <section className={styles.featureGrid} aria-label="Business pulse and key metrics">
+            <BusinessPulse
+              canAddStock={permissions.includes("inventory.create")}
+              oldestBatchAgeDays={metrics.stock.oldestBatchAgeDays}
+              openBatchCount={metrics.stock.openBatchCount}
+              status={metrics.stock.status}
+              totalGrams={metrics.stock.totalGrams}
+            />
+            <div className={styles.metricGrid}>
+              <MetricCard
+                changePercent={metrics.salesToday.changePercent}
+                href={permissions.includes("sales.read") ? "/transactions" : undefined}
+                icon={ReceiptIndianRupee}
+                label="Sales today"
+                prefix="₹"
+                sensitive
+                supportingText={`${metrics.salesToday.count} posted sales`}
+                value={metrics.salesToday.amount.toLocaleString("en-IN", { maximumFractionDigits: 0 })}
+              />
+              <MetricCard
+                changePercent={metrics.grossProfit.changePercent}
+                icon={CircleDollarSign}
+                label={`${period} day gross profit`}
+                prefix="₹"
+                sensitive
+                supportingText={`${metrics.grossProfit.marginPercent?.toFixed(1) ?? "0.0"}% margin`}
+                value={metrics.grossProfit.amount.toLocaleString("en-IN", { maximumFractionDigits: 0 })}
+              />
+              <MetricCard
+                href={permissions.includes("inventory.read") ? "/stock" : undefined}
+                icon={PackageOpen}
+                label="Available stock"
+                sensitive
+                supportingText={`${metrics.stock.openBatchCount} open batches`}
+                suffix="g"
+                value={metrics.stock.totalGrams.toLocaleString("en-IN", { maximumFractionDigits: 2 })}
+              />
+              <MetricCard
+                href={permissions.includes("customers.read") ? "/customers" : undefined}
+                icon={WalletCards}
+                label="Outstanding balance"
+                prefix="₹"
+                sensitive
+                supportingText={`${metrics.receivables.customerCount} customers with balances`}
+                value={metrics.receivables.total.toLocaleString("en-IN", { maximumFractionDigits: 0 })}
+              />
+            </div>
           </section>
         </>
       )}

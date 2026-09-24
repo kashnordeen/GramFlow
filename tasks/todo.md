@@ -33,13 +33,13 @@
 
 **Acceptance criteria:**
 
-- [ ] Desktop navigation supports 248px expanded and 76px collapsed states, remembers the preference, and visibly identifies the active route.
-- [ ] Permission-filtered links remain correct, collapsed links have accessible names/tooltips, and keyboard focus never becomes hidden.
-- [ ] Mobile navigation respects permissions and safe areas, keeps Record Sale prominent when allowed, and exposes secondary destinations in a labeled More sheet.
+- [x] Desktop navigation supports 248px expanded and 76px collapsed states, remembers the preference, and visibly identifies the active route.
+- [x] Permission-filtered links remain correct, collapsed links have accessible names/tooltips, and keyboard focus never becomes hidden.
+- [x] Mobile navigation respects permissions and safe areas, keeps Record Sale prominent when allowed, and exposes secondary destinations in a labeled More sheet.
 
 **Verification:**
 
-- [ ] Run `npm run lint` and `npm run typecheck`.
+- [x] Run `npm run lint` and `npm run typecheck`.
 - [ ] Tab through expanded, collapsed, and mobile navigation.
 - [ ] Manually compare admin and restricted permission sets at 320px, 768px, 1024px, and 1440px.
 

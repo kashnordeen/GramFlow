@@ -253,7 +253,7 @@ p {
 
 .main-content {
   flex: 1;
-  margin-left: 280px;
+  margin-left: 248px;
   min-width: 0;
   display: flex;
   flex-direction: column;
@@ -264,7 +264,7 @@ p {
 }
 
 .sidebar-collapsed .main-content {
-  margin-left: 80px;
+  margin-left: 76px;
 }
 
 .content-container {

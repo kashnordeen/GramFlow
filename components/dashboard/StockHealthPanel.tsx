@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ArrowRight, Boxes, Clock3, PackageX } from "lucide-react";
 import type { DashboardMetrics } from "@/types";
+import { PrivacyMask } from "@/components/ui/PrivacyMask";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import styles from "./dashboard.module.css";
 
@@ -35,7 +36,7 @@ export function StockHealthPanel({ canViewStock, stock }: StockHealthPanelProps)
               <li className={styles.batchItem} key={batch.id}>
                 <div className={styles.batchTopline}>
                   <span><strong>#{batch.id}</strong> {index === 0 && <em>Next FIFO</em>}</span>
-                  <span>{batch.remainingGrams.toFixed(2)}g</span>
+                  <span><PrivacyMask>{batch.remainingGrams.toFixed(2)}g</PrivacyMask></span>
                 </div>
                 <progress
                   aria-label={`${remainingPercent.toFixed(0)} percent of batch ${batch.id} remains`}
@@ -45,7 +46,7 @@ export function StockHealthPanel({ canViewStock, stock }: StockHealthPanelProps)
                 />
                 <div className={styles.batchMeta}>
                   <span><Clock3 size={12} /> {batch.ageDays} days old</span>
-                  <span>of {batch.originalGrams.toFixed(2)}g</span>
+                  <span>of <PrivacyMask>{batch.originalGrams.toFixed(2)}g</PrivacyMask></span>
                 </div>
               </li>
             );

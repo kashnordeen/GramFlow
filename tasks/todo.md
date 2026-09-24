@@ -271,16 +271,16 @@
 
 **Acceptance criteria:**
 
-- [ ] Heading order, landmarks, accessible names, focus order, dialogs/sheets, tooltips, chart summaries, and status communication meet the specification.
-- [ ] Dashboard and shell have no console errors, obvious overflow, inaccessible contrast, or broken permission/privacy behavior at target widths.
-- [ ] Full lint, typecheck, test, and production build commands pass; an untouched non-dashboard route is smoke-tested for token compatibility.
+- [x] Heading order, landmarks, accessible names, focus order, dialogs/sheets, tooltips, chart summaries, and status communication meet the specification.
+- [x] Dashboard and shell have no console errors, obvious overflow, inaccessible contrast, or broken permission/privacy behavior at target widths.
+- [x] Full lint, typecheck, test, and production build commands pass; an untouched non-dashboard route is smoke-tested for token compatibility.
 
 **Verification:**
 
-- [ ] Run `npm run lint`.
-- [ ] Run `npm run typecheck`.
-- [ ] Run `npm test`.
-- [ ] Run `npm run build`.
+- [x] Run `npm run lint`.
+- [x] Run `npm run typecheck`.
+- [x] Run `npm test`.
+- [x] Run `npm run build`.
 - [ ] Complete keyboard and browser checks at 320px, 768px, 1024px, and 1440px with normal and reduced motion.
 
 **Dependencies:** Tasks 1–9
@@ -294,7 +294,7 @@
 
 ## Checkpoint D: Ready for visual approval
 
-- [ ] All automated commands pass.
+- [x] All automated commands pass.
 - [ ] All acceptance criteria in the approved design specification are satisfied.
 - [ ] Working tree contains only intended Obsidian Vault changes.
 - [ ] The completed dashboard is opened for user visual review.

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ArrowRight, CheckCircle2, CircleAlert, ListChecks, UserRoundSearch } from "lucide-react";
 import type { DashboardMetrics } from "@/types";
 import { buildDashboardActions } from "@/lib/dashboard-actions";
+import { PrivacyMask } from "@/components/ui/PrivacyMask";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import styles from "./dashboard.module.css";
 
@@ -48,7 +49,11 @@ export function ActionQueue({ metrics, permissions }: ActionQueueProps) {
                 {action.key === "receivables" ? <UserRoundSearch size={18} /> : <CircleAlert size={18} />}
               </span>
               <div>
-                <h3>{action.title}</h3>
+                <h3>
+                  {action.key === "stock-warning" ? (
+                    <PrivacyMask>{action.title}</PrivacyMask>
+                  ) : action.title}
+                </h3>
                 <p>{action.consequence}</p>
               </div>
               {action.actionHref && action.actionLabel ? (

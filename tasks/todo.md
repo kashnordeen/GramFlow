@@ -94,13 +94,13 @@
 
 **Acceptance criteria:**
 
-- [ ] Gross profit equals posted final revenue minus aggregated assigned FIFO cost without duplicating sales that consumed multiple batches.
-- [ ] `period=7|30` is validated server-side, daily series have deterministic dates, and current/previous comparisons handle zero denominators without misleading percentages.
-- [ ] Stock, recent activity, and receivable detail are bounded, correctly typed, and do not label balances as overdue.
+- [x] Gross profit equals posted final revenue minus aggregated assigned FIFO cost without duplicating sales that consumed multiple batches.
+- [x] `period=7|30` is validated server-side, daily series have deterministic dates, and current/previous comparisons handle zero denominators without misleading percentages.
+- [x] Stock, recent activity, and receivable detail are bounded, correctly typed, and do not label balances as overdue.
 
 **Verification:**
 
-- [ ] Add and run `npm exec tsx -- --test tests/dashboard.test.ts` against configured test infrastructure.
+- [x] Add and run `npm exec tsx -- --test tests/dashboard.test.ts` against configured test infrastructure.
 - [ ] Run `npm test`.
 - [ ] Manually inspect seeded output for a multi-batch sale, reversed sale, empty database, and both period values.
 

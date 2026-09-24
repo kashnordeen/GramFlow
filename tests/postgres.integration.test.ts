@@ -5,6 +5,7 @@ import { readFile } from "node:fs/promises";
 import path from "node:path";
 import pg from "pg";
 import { allocateFifo } from "../lib/inventory";
+import { loadDashboardMetrics } from "../lib/dashboard";
 
 const url = process.env.TEST_DATABASE_URL;
 const schema = `gramflow_test_${Date.now()}_${Math.random().toString(16).slice(2)}`;
@@ -58,6 +59,70 @@ test("concurrent FIFO allocations cannot oversell the same row", { skip: !url },
   assert.equal(results.filter(Boolean).length, 1);
   assert.equal((await admin!.query("SELECT remaining_grams::float AS value FROM stock_batches")).rows[0].value, 4);
   await Promise.all([a.end(), b.end()]);
+});
+
+test("dashboard metrics use posted sales and aggregate FIFO costs once per sale", { skip: !url }, async () => {
+  await admin!.query("TRUNCATE customers,stock_batches RESTART IDENTITY CASCADE");
+  const customer = await admin!.query<{ id: number }>(
+    "INSERT INTO customers(name,total_loan) VALUES('Dashboard Customer',50) RETURNING id",
+  );
+  const batches = await admin!.query<{ id: number }>(`
+    INSERT INTO stock_batches(grams,price_per_gram,remaining_grams,created_at)
+    VALUES
+      (10,10,6,now()-interval '3 days'),
+      (10,20,8,now()-interval '2 days'),
+      (10,10,9,now()-interval '1 day')
+    RETURNING id
+  `);
+  const todaySale = await admin!.query<{ id: number }>(`
+    INSERT INTO sales(customer_id,grams_sold,gross_amount,final_amount,amount_received,balance)
+    VALUES($1,4,100,100,100,0)
+    RETURNING id
+  `, [customer.rows[0].id]);
+  const yesterdaySale = await admin!.query<{ id: number }>(`
+    INSERT INTO sales(customer_id,grams_sold,gross_amount,final_amount,amount_received,balance,created_at)
+    VALUES($1,2,80,80,80,0,CURRENT_DATE-interval '1 day')
+    RETURNING id
+  `, [customer.rows[0].id]);
+  await admin!.query(`
+    INSERT INTO sales(customer_id,grams_sold,gross_amount,final_amount,amount_received,balance,status)
+    VALUES($1,1,999,999,999,0,'REVERSED')
+  `, [customer.rows[0].id]);
+  await admin!.query(`
+    INSERT INTO sale_batch_assignments(sale_id,batch_id,grams_deducted,unit_cost)
+    VALUES
+      ($1,$3,2,10),
+      ($1,$4,2,20),
+      ($2,$5,2,10)
+  `, [
+    todaySale.rows[0].id,
+    yesterdaySale.rows[0].id,
+    batches.rows[0].id,
+    batches.rows[1].id,
+    batches.rows[2].id,
+  ]);
+
+  let queryQueue: Promise<unknown> = Promise.resolve();
+  const runSerialQuery = <T extends pg.QueryResultRow>(
+    text: string,
+    values: readonly unknown[] = [],
+  ): Promise<pg.QueryResult<T>> => {
+    const result = queryQueue.then(() => admin!.query<T>(text, [...values]));
+    queryQueue = result.then(() => undefined, () => undefined);
+    return result;
+  };
+  const metrics = await loadDashboardMetrics(runSerialQuery, 7);
+
+  assert.equal(metrics.salesToday.amount, 100);
+  assert.equal(metrics.salesToday.previousAmount, 80);
+  assert.equal(metrics.grossProfit.amount, 100);
+  assert.equal(metrics.grossProfit.revenue, 180);
+  assert.equal(metrics.stock.totalGrams, 23);
+  assert.equal(metrics.stock.openBatchCount, 3);
+  assert.equal(metrics.receivables.total, 50);
+  assert.equal(metrics.recentSales.length, 2);
+  assert.equal(metrics.trend.reduce((sum, point) => sum + point.sales, 0), 180);
+  assert.equal(metrics.trend.reduce((sum, point) => sum + point.profit, 0), 100);
 });
 
 test("database rejects unbalanced journals and audit modification", { skip: !url }, async () => {

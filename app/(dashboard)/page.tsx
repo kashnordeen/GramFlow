@@ -24,7 +24,11 @@ export default async function DashboardPage() {
     );
   }
 
-  const { totalStock, salesToday, totalLoan, totalProfit, customersWithLoans } = metrics;
+  const totalStock = metrics.stock.totalGrams;
+  const salesToday = metrics.salesToday;
+  const totalLoan = metrics.receivables.total;
+  const totalProfit = metrics.grossProfit.amount;
+  const customersWithLoans = metrics.receivables.prioritizedCustomers;
   const userName = user?.name ? user.name.split(' ')[0] : "Admin";
 
   const isLowStock = totalStock > 0 && totalStock < 5;

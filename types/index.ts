@@ -124,17 +124,58 @@ export interface CustomerLedgerData {
     };
 }
 
+export type DashboardPeriod = 7 | 30;
+export type DashboardStockStatus = 'critical' | 'healthy' | 'warning';
+
+export interface DashboardTrendPoint {
+    date: string;
+    profit: number;
+    sales: number;
+}
+
+export interface DashboardStockBatch {
+    ageDays: number;
+    createdAt: string;
+    id: number;
+    originalGrams: number;
+    remainingGrams: number;
+}
+
 export interface DashboardMetrics {
-    totalStock: number;
+    period: DashboardPeriod;
     salesToday: {
         count: number;
         grams: number;
         amount: number;
+        previousAmount: number;
+        changePercent: number | null;
     };
-    totalLoan: number;
-    totalProfit: number;
+    grossProfit: {
+        amount: number;
+        previousAmount: number;
+        changePercent: number | null;
+        marginPercent: number | null;
+        revenue: number;
+    };
+    stock: {
+        batches: DashboardStockBatch[];
+        oldestBatchAgeDays: number;
+        openBatchCount: number;
+        status: DashboardStockStatus;
+        totalGrams: number;
+    };
+    receivables: {
+        customerCount: number;
+        prioritizedCustomers: Customer[];
+        total: number;
+    };
+    trend: DashboardTrendPoint[];
     recentSales: Sale[];
-    customersWithLoans: Customer[];
+    setup: {
+        hasCustomers: boolean;
+        hasSales: boolean;
+        hasStock: boolean;
+    };
 }
 
 export interface ActionResult<T = void> {

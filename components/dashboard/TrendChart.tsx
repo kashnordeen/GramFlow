@@ -81,8 +81,8 @@ export function TrendChart({ period, points }: TrendChartProps) {
           {[30, 80, 130, 180, 230].map((y) => (
             <line className={styles.chartGridLine} x1="30" x2="690" y1={y} y2={y} key={y} />
           ))}
-          <polyline className={styles.salesLine} points={salesPath} />
-          <polyline className={styles.profitLine} points={profitPath} />
+          <polyline className={styles.salesLine} pathLength="1" points={salesPath} />
+          <polyline className={styles.profitLine} pathLength="1" points={profitPath} />
           {model.sales.map((point) => (
             <circle
               aria-label={isVisible ? `${shortDate(point.date)} sales ${currency.format(point.value)}` : "Hidden sales value"}

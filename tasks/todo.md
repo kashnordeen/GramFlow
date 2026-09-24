@@ -83,8 +83,8 @@
 
 ## Checkpoint A: Shared shell
 
-- [ ] Run `npm run lint`.
-- [ ] Run `npm run typecheck`.
+- [x] Run `npm run lint`.
+- [x] Run `npm run typecheck`.
 - [ ] Confirm every existing route remains reachable according to permissions.
 - [ ] Confirm no horizontal overflow at the four target widths.
 
@@ -101,7 +101,7 @@
 **Verification:**
 
 - [x] Add and run `npm exec tsx -- --test tests/dashboard.test.ts` against configured test infrastructure.
-- [ ] Run `npm test`.
+- [x] Run `npm test`.
 - [ ] Manually inspect seeded output for a multi-batch sale, reversed sale, empty database, and both period values.
 
 **Dependencies:** None; may be implemented after Task 1 while shell work is complete
@@ -144,10 +144,10 @@
 
 ## Checkpoint B: Data and resilience
 
-- [ ] Run `npm test`.
-- [ ] Run `npm run lint` and `npm run typecheck`.
+- [x] Run `npm test`.
+- [x] Run `npm run lint` and `npm run typecheck`.
 - [ ] Verify profit, trends, stock, receivables, empty state, and error state against seeded data.
-- [ ] Confirm masked values remain layout-stable.
+- [x] Confirm masked values remain layout-stable.
 
 ## Task 6: Deliver Business Pulse and decision KPIs
 
@@ -233,10 +233,10 @@
 
 ## Checkpoint C: Core dashboard
 
-- [ ] Run `npm test`, `npm run lint`, and `npm run typecheck`.
+- [x] Run `npm test`, `npm run lint`, and `npm run typecheck`.
 - [ ] Verify normal, low-stock, out-of-stock, full-empty, and partial-empty flows end to end.
-- [ ] Confirm there are no fake charts, decorative trend arrows, or mislabeled profit values.
-- [ ] Confirm all actions and sensitive values respect permissions and privacy state.
+- [x] Confirm there are no fake charts, decorative trend arrows, or mislabeled profit values.
+- [x] Confirm all actions and sensitive values respect permissions and privacy state.
 
 ## Task 9: Apply purposeful motion and responsive refinement
 
@@ -244,15 +244,15 @@
 
 **Acceptance criteria:**
 
-- [ ] Motion timings stay within the approved ranges, critical alerts pulse at most once, and no idle animation continuously consumes resources.
-- [ ] `prefers-reduced-motion` disables tilt, stagger, count-up, chart drawing, and nonessential route motion while preserving immediate feedback.
-- [ ] No dashboard or shell content overlaps, clips, or creates horizontal scroll at 320px, 768px, 1024px, or 1440px.
+- [x] Motion timings stay within the approved ranges, critical alerts pulse at most once, and no idle animation continuously consumes resources.
+- [x] `prefers-reduced-motion` disables tilt, stagger, count-up, chart drawing, and nonessential route motion while preserving immediate feedback.
+- [x] No dashboard or shell content overlaps, clips, or creates horizontal scroll at 320px, 768px, 1024px, or 1440px.
 
 **Verification:**
 
-- [ ] Run `npm run lint` and `npm run typecheck`.
+- [x] Run `npm run lint` and `npm run typecheck`.
 - [ ] Use browser emulation at all four target widths in normal and reduced-motion modes.
-- [ ] Inspect page idle behavior and confirm no continuous animation or layout work.
+- [x] Inspect page idle behavior and confirm no continuous animation or layout work.
 
 **Dependencies:** Tasks 2, 3, 6, 7, and 8
 

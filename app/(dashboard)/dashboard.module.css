@@ -1,0 +1,21 @@
+.routeFrame {
+  min-width: 0;
+  animation: routeReveal 240ms var(--ease-out) both;
+}
+
+@keyframes routeReveal {
+  from {
+    opacity: 0;
+    transform: translateY(5px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .routeFrame {
+    animation: none;
+  }
+}

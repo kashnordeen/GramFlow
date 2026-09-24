@@ -7,6 +7,7 @@ import {
   percentageChange,
 } from "../lib/dashboard";
 import { getTrendChartModel } from "../lib/dashboard-chart";
+import { buildDashboardActions } from "../lib/dashboard-actions";
 
 test("dashboard period accepts only the supported 7 and 30 day ranges", () => {
   assert.equal(normalizeDashboardPeriod("30"), 30);
@@ -54,4 +55,21 @@ test("trend chart geometry preserves point order and handles a zero series", () 
   assert.equal(model.sales[0].x, model.profit[0].x);
   assert.ok(model.sales[1].y < model.profit[1].y);
   assert.equal(model.maxValue, 100);
+});
+
+test("dashboard actions prioritize blocked sales and never invent overdue debt", () => {
+  const actions = buildDashboardActions(
+    {
+      stockStatus: "critical",
+      stockGrams: 0,
+      receivableCustomers: 2,
+      receivableTotal: 300,
+      setup: { hasCustomers: true, hasSales: true, hasStock: false },
+    },
+    ["inventory.create", "customers.read"],
+  );
+
+  assert.equal(actions[0].key, "stock-critical");
+  assert.equal(actions[0].actionHref, "/stock");
+  assert.ok(actions.every((action) => !action.title.toLowerCase().includes("overdue")));
 });

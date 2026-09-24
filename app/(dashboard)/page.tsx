@@ -8,8 +8,11 @@ import {
   WalletCards,
 } from "lucide-react";
 import { BusinessPulse } from "@/components/dashboard/BusinessPulse";
+import { ActionQueue } from "@/components/dashboard/ActionQueue";
 import { DashboardEmptyState } from "@/components/dashboard/DashboardEmptyState";
 import { MetricCard } from "@/components/dashboard/MetricCard";
+import { QuickActions } from "@/components/dashboard/QuickActions";
+import { RecentActivity } from "@/components/dashboard/RecentActivity";
 import { StockHealthPanel } from "@/components/dashboard/StockHealthPanel";
 import { TrendChart } from "@/components/dashboard/TrendChart";
 import styles from "@/components/dashboard/dashboard.module.css";
@@ -147,6 +150,14 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
               canViewStock={permissions.includes("inventory.read")}
               stock={metrics.stock}
             />
+          </div>
+          <div className={styles.operationsGrid}>
+            <ActionQueue metrics={metrics} permissions={permissions} />
+            <RecentActivity
+              canViewTransactions={permissions.includes("sales.read")}
+              sales={metrics.recentSales}
+            />
+            <QuickActions permissions={permissions} />
           </div>
         </>
       )}

@@ -209,13 +209,13 @@
 
 **Acceptance criteria:**
 
-- [ ] Each action-queue item states the condition, consequence, and direct next action; receivables are described by balance priority, not unsupported overdue status.
-- [ ] Recent activity shows posted sales with customer, grams, amount, and time; sensitive values respect privacy masking.
-- [ ] Quick actions render only for authorized operations and do not duplicate an unsupported payment workflow.
+- [x] Each action-queue item states the condition, consequence, and direct next action; receivables are described by balance priority, not unsupported overdue status.
+- [x] Recent activity shows posted sales with customer, grams, amount, and time; sensitive values respect privacy masking.
+- [x] Quick actions render only for authorized operations and do not duplicate an unsupported payment workflow.
 
 **Verification:**
 
-- [ ] Run `npm run lint` and `npm run typecheck`.
+- [x] Run `npm run lint` and `npm run typecheck`.
 - [ ] Manually verify empty, low-stock, high-balance, recent-sales, privacy-masked, and restricted-permission variants.
 - [ ] Follow every rendered link and confirm the destination exists and authorizes correctly.
 

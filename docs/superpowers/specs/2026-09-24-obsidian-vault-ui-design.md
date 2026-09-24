@@ -1,6 +1,6 @@
 # Obsidian Vault UI/UX Design
 
-**Status:** Awaiting written-spec approval
+**Status:** Approved on 2026-09-24
 
 **Date:** 2026-09-24
 

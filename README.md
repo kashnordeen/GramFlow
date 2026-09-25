@@ -106,6 +106,7 @@ Important environment variables:
 - `JWT_SECRET`: random value of at least 32 characters (required)
 - `REGISTRATION_CODE`: private initial-registration code
 - `ALLOWED_EMAIL_DOMAIN`: organization email domain accepted by authentication
+- `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_REDIRECT_URI`: optional Google OAuth web-client credentials and exact callback URL
 - `COST_PRICE_PER_GRAM`: default cost for new stock batches
 - `SEED_ADMIN_*`: optional development administrator credentials used by the seed script
 - `DEMO_SEED_PASSWORD`: shared local-only password used by the optional demo fixtures
@@ -121,6 +122,10 @@ The PostgreSQL username and password are database credentials, not GramFlow logi
 - the private `REGISTRATION_CODE` from `.env`
 
 The first account receives the `ADMIN` role and is signed in automatically. Public signup closes after that account is created; administrators create subsequent users from `/admin/roles`.
+
+### Google sign-in and first-admin signup
+
+Create a Google OAuth **Web application** client, allow your app's origin, and register the exact redirect URI `http://localhost:3000/api/auth/google/callback` for local development (use your HTTPS origin in production). Set `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, and `GOOGLE_REDIRECT_URI` in `.env`, then run `npm run db:migrate`. Google signup still requires `REGISTRATION_CODE` and is available only for the first administrator. After bootstrap, Google sign-in works only for an existing active account under `ALLOWED_EMAIL_DOMAIN`; it never self-registers a new teammate. For a custom domain, the Google ID token must include the matching Workspace hosted-domain claim. Without OAuth credentials, the button reports that configuration is required rather than pretending to sign in.
 
 ## Migrations and seed data
 
@@ -194,6 +199,8 @@ Journal entries require at least two lines and equal total debits/credits. Appli
 ## RBAC and authentication
 
 Passwords are hashed with bcrypt (cost 12). The signed JWT stores only the user ID, lives in an `httpOnly`, `SameSite=Lax` cookie, and is `Secure` in production. Every request reloads active roles and permissions from PostgreSQL, so client-provided roles are never trusted.
+
+Google sign-in uses authorization code + PKCE, a short-lived signed flow cookie, state and nonce checks, and Google's verified ID-token signature, issuer, audience, email and hosted-domain claims. Google-only accounts have no local password; existing password accounts can link a matching verified Google identity on first sign-in.
 
 The public signup page is a one-time bootstrap path: it can create the first administrator only. After that, administrators create and disable users from `/admin/roles`. Five failed logins within fifteen minutes lock that email for fifteen minutes. Password changes and account disabling invalidate existing sessions.
 

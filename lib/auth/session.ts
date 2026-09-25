@@ -28,7 +28,7 @@ export async function getSessionUser(): Promise<SessionUser | null> {
     const id = Number(payload.sub);
     if (!Number.isInteger(id)) return null;
     const result = await query<SessionUser & { session_version: number }>(
-      `SELECT u.id, u.email, u.name, u.session_version,
+      `SELECT u.id, u.email, u.name, u.session_version, (u.password_hash IS NOT NULL) AS has_password,
               COALESCE(array_agg(DISTINCT r.name) FILTER (WHERE r.name IS NOT NULL), '{}') AS roles,
               COALESCE(array_agg(DISTINCT p.name) FILTER (WHERE p.name IS NOT NULL), '{}') AS permissions
        FROM users u

@@ -8,7 +8,7 @@ import { writeAuditLog } from "../audit";
 import { ActionResult, SessionUser } from "@/types";
 import { allowedEmailDomain, isEmailAllowed, normalizeEmail, validatePassword } from "../auth/policy";
 
-interface DbUserRow { id: number; email: string; name: string; password_hash: string; session_version: number; }
+interface DbUserRow { id: number; email: string; name: string; password_hash: string | null; google_subject: string | null; session_version: number; }
 
 export async function signupAction(emailRaw: string, passwordRaw: string, name: string, registrationCode: string): Promise<ActionResult> {
   const expectedCode = process.env.REGISTRATION_CODE;
@@ -49,7 +49,7 @@ export async function loginAction(emailRaw: string, passwordRaw: string): Promis
     }
     const result = await query<DbUserRow>("SELECT id,email,name,password_hash,session_version FROM users WHERE email=$1 AND is_active=TRUE", [email]);
     const user = result.rows[0];
-    if (!user || !(await bcrypt.compare(passwordRaw, user.password_hash))) {
+    if (!user || !user.password_hash || !(await bcrypt.compare(passwordRaw, user.password_hash))) {
       await withTransaction(async (client) => {
         await client.query(`INSERT INTO auth_login_attempts(email,failed_count) VALUES($1,1)
           ON CONFLICT(email) DO UPDATE SET
@@ -77,9 +77,11 @@ export async function updateProfileData(email: string, currentPasswordRaw: strin
   try {
     const actor = await requireAuthenticatedUser();
     if (actor.email !== email.toLowerCase()) return { error: "You may only update your own profile." };
-    const result = await query<DbUserRow>("SELECT id,email,name,password_hash,session_version FROM users WHERE id=$1", [actor.id]);
+    const result = await query<DbUserRow>("SELECT id,email,name,password_hash,google_subject,session_version FROM users WHERE id=$1", [actor.id]);
     const user = result.rows[0];
-    if (!user || !(await bcrypt.compare(currentPasswordRaw, user.password_hash))) return { error: "Authentication failed. The current password is incorrect." };
+    if (!user) return { error: "Account not found." };
+    if (user.password_hash && !(await bcrypt.compare(currentPasswordRaw, user.password_hash))) return { error: "Authentication failed. The current password is incorrect." };
+    if (!user.password_hash && (!user.google_subject || newPasswordRaw)) return { error: "Password changes are not available for Google-only accounts." };
     const passwordError = newPasswordRaw ? validatePassword(newPasswordRaw) : null;
     if (passwordError) return { error: passwordError };
     const passwordHash = newPasswordRaw ? await bcrypt.hash(newPasswordRaw, 12) : null;

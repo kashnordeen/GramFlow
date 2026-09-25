@@ -11,6 +11,7 @@ export interface SessionUser {
     name: string;
     roles: string[];
     permissions: string[];
+    has_password: boolean;
 }
 
 export interface Customer {

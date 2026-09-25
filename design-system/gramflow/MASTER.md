@@ -6,7 +6,7 @@
 
 ## Design read
 
-GramFlow is a business-critical inventory, receivables, and accounting application for daily operators. It uses a dark precision-command-center language with restrained lime energy, calm information density, and one purposeful spatial visualization.
+GramFlow is a business-critical inventory, receivables, and accounting application for daily operators. Obsidian is the default precision-command-center language. Daylight is a complete light companion, not an inverted afterthought. Both use the same hierarchy, restrained lime energy, clear task surfaces, and calm information density.
 
 ## Core tokens
 
@@ -27,6 +27,27 @@ GramFlow is a business-critical inventory, receivables, and accounting applicati
 | Critical | `#FF5C68` |
 | Success | `#53D68A` |
 
+### Daylight companion
+
+| Role | Value |
+| --- | --- |
+| Canvas | `#F3F6F1` |
+| Surface 1 | `#FFFFFF` |
+| Surface 2 | `#EDF2EB` |
+| Surface 3 | `#E3EBE2` |
+| Border | `#D5E0D4` |
+| Strong border | `#B9CBB8` |
+| Primary text | `#15231A` |
+| Secondary text | `#47594C` |
+| Muted text | `#627467` |
+| Interactive accent | `#476F0B` |
+| Analytical accent | `#087B78` |
+| Warning | `#9D5200` |
+| Critical | `#BB3144` |
+| Success | `#14774C` |
+
+The vivid Obsidian lime remains a brand accent on dark feature surfaces. Daylight uses deeper green for small text and buttons so contrast holds.
+
 ## Type and shape
 
 - Font stack: Geist, Segoe UI Variable, Segoe UI, system sans-serif.
@@ -39,9 +60,9 @@ GramFlow is a business-critical inventory, receivables, and accounting applicati
 
 - Every action uses a native link or button with a visible focus indicator.
 - Desktop and mobile targets are at least 44px where the layout permits touch use.
-- Motion communicates hierarchy, feedback, or state. It never loops without an operational reason.
+- Motion communicates hierarchy, feedback, or state. The authentication orbital is the only ambient branded loop; it stops for reduced-motion preferences.
 - Animate transform and opacity only. Honor `prefers-reduced-motion`.
-- Dark text contrast must meet WCAG 2.1 AA. Color is never the sole state indicator.
+- Text contrast in both themes must meet WCAG 2.1 AA. Color is never the sole state indicator.
 
 ## Layout rules
 
@@ -50,13 +71,16 @@ GramFlow is a business-critical inventory, receivables, and accounting applicati
 - Desktop navigation is 248px expanded and 76px collapsed.
 - Mobile content becomes single-column and clears the fixed bottom navigation plus safe area.
 - Avoid decorative fake charts, generic three-card layouts, excessive glow, and repeated rounded containers.
+- Operational routes use a shared sequence: context header, focused task panel, supporting context/preview, and an inspectable ledger. Fields have persistent labels and explain consequential behavior before submission.
+- Authentication uses a split-screen brand story only at wide widths; tablet and phone become a single-column form without sideways scrolling.
+- Preserve business behavior, including FIFO, immutable journals, role permissions, and first-admin-only signup.
 
 ## Performance rules
 
 - Preserve server rendering for page structure and initial data.
-- Use native CSS and SVG for the dashboard visuals. No WebGL or animation dependency in Phase 1.
+- Use native CSS and SVG for the spatial visuals. Avoid WebGL and a new animation dependency.
 - Reserve layout space for asynchronous content to keep cumulative layout shift low.
 
 ## Source of truth
 
-The approved design specification at `docs/superpowers/specs/2026-09-24-obsidian-vault-ui-design.md` takes precedence over generated recommendations. Page overrides live under `pages/`.
+The approved Obsidian direction at `docs/superpowers/specs/2026-09-24-obsidian-vault-ui-design.md` remains the baseline. This file records the approved expansion to every operational route, authentication, and Daylight mode. Page overrides live under `pages/`.

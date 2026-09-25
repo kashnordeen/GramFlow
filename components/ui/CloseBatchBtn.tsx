@@ -39,8 +39,8 @@ export function CloseBatchBtn({ id }: { id: number }) {
 
             {isOpen && typeof document !== 'undefined' && createPortal(
                 <div className="modal-overlay" onClick={() => setIsOpen(false)}>
-                    <div className="modal-card animate-fade-in" style={{ maxWidth: '420px' }} onClick={(e) => e.stopPropagation()}>
-                        <h3 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: 0, color: 'var(--danger)', fontSize: '1.25rem' }}>
+                    <div className="modal-card animate-fade-in" role="dialog" aria-modal="true" aria-labelledby="close-batch-title" style={{ maxWidth: '420px' }} onKeyDown={(e) => { if (e.key === "Escape") setIsOpen(false); }} onClick={(e) => e.stopPropagation()}>
+                        <h3 id="close-batch-title" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: 0, color: 'var(--danger)', fontSize: '1.25rem' }}>
                             <PowerOff size={20} /> Force End Batch
                         </h3>
                         <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', lineHeight: 1.5, marginTop: '0.5rem' }}>

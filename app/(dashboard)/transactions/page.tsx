@@ -1,24 +1,16 @@
 import { getAllSales } from "@/lib/actions/sale.actions";
 import { TransactionsClient } from "@/components/ui/TransactionsClient";
 import { Database } from "lucide-react";
+import { WorkspaceHeader, WorkspaceSection } from "@/components/ui/Workspace";
 
 export default async function TransactionsPage() {
     const allSales = await getAllSales();
 
     return (
-        <>
-            <div className="flex-between" style={{ marginBottom: "2rem" }}>
-                <div>
-                    <h1>Master Transactions Log</h1>
-                    <p>Complete historical ledger of all recorded inventory sales and loan payments.</p>
-                </div>
-                <div className="card-light" style={{ padding: '0.75rem 1.25rem', display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
-                    <Database size={18} style={{ color: 'var(--text-primary)' }} />
-                    <span style={{ fontWeight: 600, fontSize: '0.9rem' }}>{allSales?.length || 0} Total Records</span>
-                </div>
-            </div>
-
+        <div className="workspace-page">
+            <WorkspaceHeader eyebrow="ACTIVITY / SALES LEDGER" title="Transactions" description="Search recorded sales, review balances and open receipts from one timeline." aside={<div className="workspace-hero-stat"><span>Total records</span><strong>{allSales?.length || 0}</strong></div>} />
+            <WorkspaceSection title="Sales history" description="Filter by customer, amount or payment status." aside={<span className="work-pill"><Database size={14} aria-hidden="true" /> Ledger records</span>} />
             <TransactionsClient initialSales={allSales} />
-        </>
+        </div>
     );
 }

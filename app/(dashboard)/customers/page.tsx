@@ -5,11 +5,12 @@ import { getCustomers, createCustomer, addCustomerPayment } from "@/lib/actions/
 import { getCustomerLedger } from "@/lib/actions/ledger.actions";
 import { generateCustomerReport } from "@/lib/generateCustomerReport";
 import { showToast } from "@/components/ToastProvider";
-import { UserPlus, IndianRupee, FileText, Trophy } from "lucide-react";
+import { UserPlus, IndianRupee, FileText, Trophy, UsersRound } from "lucide-react";
 import { EditCustomerBtn } from "@/components/ui/EditCustomerBtn";
 import { DeleteCustomerBtn } from "@/components/ui/DeleteCustomerBtn";
 import { Customer } from "@/types";
 import { useAccess } from "@/components/AccessProvider";
+import { WorkspaceHeader, WorkspacePanel, WorkspaceSection } from "@/components/ui/Workspace";
 
 export default function CustomersPage() {
     const { hasPermission } = useAccess();
@@ -88,68 +89,40 @@ export default function CustomersPage() {
 
     const totalOutstanding = customers.reduce((sum, c) => sum + (c.total_loan || 0) + (c.old_loan || 0), 0);
 
-    if (loading) return (
-        <div style={{ display: 'flex', justifyContent: 'center', margin: '4rem' }}>
-            <div style={{ fontSize: '1rem', color: 'var(--text-secondary)' }}>Loading customer directory...</div>
-        </div>
-    );
+    if (loading) return <div className="work-loading" role="status">Loading customer directory...</div>;
 
     return (
-        <>
-            <div className="flex-between" style={{ marginBottom: "2rem" }}>
-                <div>
-                    <h1>Customers Directory</h1>
-                    <p>Manage customer accounts, outstanding debt balances, and record payments.</p>
-                </div>
-                <div className="card-light" style={{ padding: '0.85rem 1.5rem', minWidth: '220px' }}>
-                    <p style={{ margin: 0, fontSize: '0.78rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--text-muted)' }}>
-                        Total Outstanding Debt
-                    </p>
-                    <p style={{ margin: 0, fontSize: '1.6rem', fontWeight: 700, color: totalOutstanding > 0 ? 'var(--warning)' : 'var(--success)' }}>
-                        <span style={{ fontSize: '1.1rem', marginRight: '2px', color: 'var(--text-muted)' }}>₹</span>{totalOutstanding.toFixed(2)}
-                    </p>
-                </div>
-            </div>
+        <div className="workspace-page">
+            <WorkspaceHeader eyebrow="RELATIONSHIPS / LEDGER" title="Customers" description="Keep customer profiles, payment history and outstanding balances together." aside={<div className="workspace-hero-stat"><span>Total outstanding</span><strong>₹{totalOutstanding.toFixed(2)}</strong></div>} />
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '1.5rem', marginBottom: '2.5rem', alignItems: 'start' }}>
-                {/* Register Customer Card */}
-                {canCreateCustomer && <div className="card-light" style={{ padding: '2rem' }}>
-                    <h3 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1.25rem', fontSize: '1.2rem' }}>
-                        <UserPlus size={20} /> Register New Customer
-                    </h3>
+            <div className="workspace-grid">
+                {canCreateCustomer && <WorkspacePanel icon={<UserPlus size={20} />} title="Add a customer" description="Create a profile before recording a sale or payment.">
                     <form onSubmit={handleCreateCustomer}>
                         <div className="form-group">
-                            <label>Full Name <span style={{ color: 'var(--danger)' }}>*</span></label>
-                            <input type="text" className="input-field" value={name} onChange={e => setName(e.target.value)} required placeholder="e.g. John Doe" />
+                            <label htmlFor="customer-name">Full name <span aria-hidden="true">*</span></label>
+                            <input id="customer-name" type="text" className="input-field" value={name} onChange={e => setName(e.target.value)} required placeholder="Customer name" />
                         </div>
                         <div className="form-group">
-                            <label>Phone Number</label>
-                            <input type="text" className="input-field" value={phone} onChange={e => setPhone(e.target.value)} placeholder="+91 9876543210" />
+                            <label htmlFor="customer-phone">Phone number</label>
+                            <input id="customer-phone" type="tel" className="input-field" value={phone} onChange={e => setPhone(e.target.value)} placeholder="+91 98765 43210" />
                         </div>
                         <div className="form-group">
-                            <label>Legacy Balance (Optional) ₹</label>
-                            <input type="number" step="0.01" min="0" className="input-field" value={oldLoan} onChange={e => setOldLoan(e.target.value)} placeholder="0.00" />
-                            <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>Incoming payments will automatically deduct from legacy balance first.</p>
+                            <label htmlFor="customer-legacy">Opening balance (₹)</label>
+                            <input id="customer-legacy" type="number" step="0.01" min="0" className="input-field" value={oldLoan} onChange={e => setOldLoan(e.target.value)} placeholder="0.00" />
+                            <p className="field-hint">Payments clear this balance before newer debt.</p>
                         </div>
                         <button type="submit" className="btn btn-primary" style={{ width: '100%', marginTop: '0.5rem' }} disabled={addingCustomer}>
-                            {addingCustomer ? "Registering..." : "Create Customer Profile"}
+                            {addingCustomer ? "Creating profile..." : "Create customer"}
                         </button>
                     </form>
-                </div>}
+                </WorkspacePanel>}
 
-                {/* Record Payment Form (if selected) */}
                 {selectedCustomerId && canCreatePayment && (
-                    <div className="card-light animate-fade-in" style={{ padding: '2rem', border: '2px solid var(--bg-dark)' }}>
-                        <h3 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem', fontSize: '1.2rem' }}>
-                            <IndianRupee size={20} /> Record Payment Receipt
-                        </h3>
-                        <p style={{ color: 'var(--text-secondary)', marginBottom: '1.25rem', fontSize: '0.875rem' }}>
-                            Receiving payment from <strong>{customers.find(c => c.id === selectedCustomerId)?.name}</strong>
-                        </p>
+                    <WorkspacePanel icon={<IndianRupee size={20} />} title="Record payment" description={`From ${customers.find(c => c.id === selectedCustomerId)?.name || "customer"}`} accent>
                         <form onSubmit={handleAddPayment}>
                             <div className="form-group">
-                                <label>Payment Amount (₹) <span style={{ color: 'var(--danger)' }}>*</span></label>
-                                <input type="number" step="1" min="1" className="input-field" value={paymentAmount} onChange={e => setPaymentAmount(e.target.value)} required placeholder="0" autoFocus />
+                                <label htmlFor="payment-amount">Amount received (₹) <span aria-hidden="true">*</span></label>
+                                <input id="payment-amount" type="number" step="1" min="1" className="input-field" value={paymentAmount} onChange={e => setPaymentAmount(e.target.value)} required placeholder="0" autoFocus />
                             </div>
                             <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1.25rem' }}>
                                 <button type="button" className="btn btn-secondary" style={{ flex: 1 }} onClick={() => setSelectedCustomerId(null)}>
@@ -160,19 +133,12 @@ export default function CustomersPage() {
                                 </button>
                             </div>
                         </form>
-                    </div>
+                    </WorkspacePanel>
                 )}
 
-                {/* Loyalty Ranking Box */}
                 {!selectedCustomerId && (
-                    <div className="card-light" style={{ padding: '0', display: 'flex', flexDirection: 'column', height: '100%', maxHeight: '420px', overflow: 'hidden' }}>
-                        <div style={{ padding: '1.5rem', borderBottom: '1px solid var(--border-subtle)' }}>
-                            <h3 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', margin: 0, fontSize: '1.15rem' }}>
-                                <Trophy size={20} /> Loyalty Ranking
-                            </h3>
-                            <p style={{ margin: '0.25rem 0 0 0', fontSize: '0.8rem', color: 'var(--text-muted)' }}>Customers sorted by lowest outstanding balance.</p>
-                        </div>
-                        <div style={{ flex: 1, overflowY: 'auto', padding: '0.75rem 1rem' }}>
+                    <WorkspacePanel icon={<Trophy size={20} />} title="Balance overview" description="Customers with the smallest balance appear first." accent>
+                        <div style={{ maxHeight: '300px', overflowY: 'auto' }}>
                             {[...customers]
                                 .sort((a, b) => ((a.total_loan || 0) + (a.old_loan || 0)) - ((b.total_loan || 0) + (b.old_loan || 0)))
                                 .map((c, index) => {
@@ -185,8 +151,8 @@ export default function CustomersPage() {
                                                 padding: '0.75rem 0.85rem',
                                                 borderRadius: 'var(--radius-sm)',
                                                 marginBottom: '0.35rem',
-                                                backgroundColor: index === 0 ? 'rgba(198, 255, 0, 0.15)' : 'var(--bg-subtle)',
-                                                border: index === 0 ? '1px solid rgba(198, 255, 0, 0.4)' : '1px solid transparent'
+                                                backgroundColor: 'var(--bg-subtle)',
+                                                border: index === 0 ? '1px solid var(--vault-border-bright)' : '1px solid transparent'
                                             }}
                                         >
                                             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
@@ -212,15 +178,13 @@ export default function CustomersPage() {
                                         </div>
                                     );
                                 })}
-                            {customers.length === 0 && (
-                                <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)' }}>No customers registered yet.</div>
-                            )}
+                            {customers.length === 0 && <div className="work-empty">No customers yet. Add your first profile to get started.</div>}
                         </div>
-                    </div>
+                    </WorkspacePanel>
                 )}
             </div>
 
-            <h2 style={{ marginTop: '2.5rem', marginBottom: '1rem' }}>Customer Directory</h2>
+            <WorkspaceSection title="Customer directory" description="Profiles, balances and account actions." aside={<span className="work-pill"><UsersRound size={14} aria-hidden="true" /> {customers.length} customers</span>} />
             <div className="table-luxury-container">
                 <table className="table-luxury">
                     <thead>
@@ -298,11 +262,11 @@ export default function CustomersPage() {
                             );
                         })}
                         {customers.length === 0 && (
-                            <tr><td colSpan={6} style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-muted)' }}>No customers registered yet.</td></tr>
+                            <tr><td colSpan={6} className="work-empty">No customers registered yet.</td></tr>
                         )}
                     </tbody>
                 </table>
             </div>
-        </>
+        </div>
     );
 }

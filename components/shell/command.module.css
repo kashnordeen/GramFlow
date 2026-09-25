@@ -459,3 +459,18 @@
     margin-top: 8dvh;
   }
 }
+
+:global(html[data-theme="light"]) .commandBar,
+:global(html[data-theme="light"]) .mobileHeader {
+  background: rgb(255 255 255 / 0.88);
+}
+
+:global(html[data-theme="light"]) .primaryAction {
+  color: #fff;
+}
+
+:global(html[data-theme="light"]) .contextIcon,
+:global(html[data-theme="light"]) .commandIcon {
+  border-color: color-mix(in srgb, var(--vault-lime) 25%, transparent);
+  background: color-mix(in srgb, var(--vault-lime) 8%, white);
+}

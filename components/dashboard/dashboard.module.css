@@ -1495,6 +1495,23 @@
   }
 }
 
+:global(html[data-theme="light"]) .contextPill,
+:global(html[data-theme="light"]) .setupStep {
+  background: var(--vault-surface-1);
+}
+
+:global(html[data-theme="light"]) .businessPulse {
+  --vault-text: #f2f7f4;
+  --vault-text-secondary: #bfcbc0;
+  --vault-text-muted: #9faea1;
+  --vault-lime: #c7ff36;
+  --vault-cyan: #40e4d4;
+  --vault-warning: #ffb547;
+  --vault-danger: #ff6b75;
+  --vault-border: #3b4a43;
+  --vault-border-bright: #58665c;
+}
+
 @media (pointer: coarse) {
   .vaultScene {
     transform: none !important;

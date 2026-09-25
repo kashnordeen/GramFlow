@@ -11,12 +11,14 @@ export function EditProfileBtn({
     isOpen,
     setIsOpen,
     currentEmail,
-    currentName
+    currentName,
+    hasPassword,
 }: {
     isOpen: boolean;
     setIsOpen: (o: boolean) => void;
     currentEmail: string;
     currentName: string;
+    hasPassword: boolean;
 }) {
     const router = useRouter();
     const [loading, setLoading] = useState(false);
@@ -29,8 +31,12 @@ export function EditProfileBtn({
     const handleSave = async (e: React.FormEvent) => {
         e.preventDefault();
 
-        if (!currentPassword) {
+        if (hasPassword && !currentPassword) {
             showToast("Current password is required to make changes.", "error");
+            return;
+        }
+        if (!hasPassword && name.trim() === currentName) {
+            showToast("No profile changes to save.", "error");
             return;
         }
 
@@ -58,22 +64,26 @@ export function EditProfileBtn({
 
     return createPortal(
         <div className="modal-overlay" onClick={() => setIsOpen(false)}>
-            <div className="modal-card animate-fade-in" style={{ maxWidth: '440px' }} onClick={(e) => e.stopPropagation()}>
+            <div className="modal-card animate-fade-in" role="dialog" aria-modal="true" aria-labelledby="edit-profile-title" style={{ maxWidth: '440px' }} onKeyDown={(e) => { if (e.key === "Escape") setIsOpen(false); }} onClick={(e) => e.stopPropagation()}>
                 <button
+                    type="button"
+                    aria-label="Close profile editor"
                     onClick={() => setIsOpen(false)}
                     style={{ position: 'absolute', top: '1.25rem', right: '1.25rem', background: 'var(--bg-subtle)', border: 'none', borderRadius: '50%', width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-secondary)', cursor: 'pointer' }}
                 >
                     <X size={18} />
                 </button>
 
-                <h3 style={{ marginTop: 0, marginBottom: '1.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '1.25rem' }}>
+                <h3 id="edit-profile-title" style={{ marginTop: 0, marginBottom: '1.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '1.25rem' }}>
                     <UserCircle size={20} /> Edit Profile
                 </h3>
 
                 <form onSubmit={handleSave}>
                     <div className="form-group">
-                        <label>Display Name</label>
+                        <label htmlFor="profile-name">Display name</label>
                         <input
+                            id="profile-name"
+                            autoFocus
                             type="text"
                             className="input-field"
                             value={name}
@@ -81,21 +91,23 @@ export function EditProfileBtn({
                             required
                         />
                     </div>
-                    <div className="form-group">
-                        <label>New Password (Optional)</label>
+                    {hasPassword && <div className="form-group">
+                        <label htmlFor="profile-new-password">New password (optional)</label>
                         <input
+                            id="profile-new-password"
                             type="password"
                             className="input-field"
                             value={newPassword}
                             onChange={e => setNewPassword(e.target.value)}
                             placeholder="Leave blank to keep current"
                         />
-                    </div>
+                    </div>}
 
-                    <div style={{ borderTop: '1px solid var(--border-subtle)', margin: '1.25rem 0', paddingTop: '1.25rem' }}>
+                    {hasPassword ? <div style={{ borderTop: '1px solid var(--border-subtle)', margin: '1.25rem 0', paddingTop: '1.25rem' }}>
                         <div className="form-group">
-                            <label style={{ color: 'var(--danger)' }}>Current Password (Required)</label>
+                            <label htmlFor="profile-current-password">Current password (required)</label>
                             <input
+                                id="profile-current-password"
                                 type="password"
                                 className="input-field"
                                 value={currentPassword}
@@ -104,7 +116,7 @@ export function EditProfileBtn({
                                 placeholder="Enter current password to verify"
                             />
                         </div>
-                    </div>
+                    </div> : <p className="field-hint">Signed in with Google. Your display name can be edited here; password changes are not available for this account.</p>}
 
                     <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '1.75rem' }}>
                         <button type="button" onClick={() => setIsOpen(false)} className="btn btn-secondary" style={{ flex: 1 }}>

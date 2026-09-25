@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Boxes, CircleGauge, ShoppingCart } from "lucide-react";
 import { AccountMenu } from "@/components/shell/AccountMenu";
+import { ThemeToggle } from "@/components/ui/ThemeToggle";
 import { CommandPalette } from "@/components/shell/CommandPalette";
 import {
   getAllowedNavigationItems,
@@ -17,6 +18,7 @@ interface TopNavUser {
   name: string;
   permissions?: string[];
   roles?: string[];
+  has_password?: boolean;
 }
 
 export function TopNav({ user }: { user: TopNavUser }) {
@@ -49,6 +51,7 @@ export function TopNav({ user }: { user: TopNavUser }) {
         <CommandPalette items={navigationItems} />
 
         <div className={styles.actions}>
+          <ThemeToggle compact />
           {permissions.includes("inventory.create") && (
             <Link href="/stock" className={styles.actionLink} aria-label="Add stock">
               <Boxes aria-hidden="true" size={17} />
@@ -67,13 +70,13 @@ export function TopNav({ user }: { user: TopNavUser }) {
 
       <header className={styles.mobileHeader}>
         <Link href="/" className={styles.mobileBrand}>
-          <Image src="/logo.png" alt="" width={36} height={36} priority />
+          <Image src="/brand-mark.svg" alt="" width={36} height={36} priority />
           <span>
             <strong>GramFlow</strong>
             <span>{currentLabel}</span>
           </span>
         </Link>
-        <AccountMenu user={user} compact />
+        <div className={styles.actions}><ThemeToggle compact /><AccountMenu user={user} compact /></div>
       </header>
     </>
   );

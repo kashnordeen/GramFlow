@@ -50,6 +50,7 @@ export function EditCustomerBtn({ customer }: { customer: Customer }) {
                 type="button"
                 onClick={() => setIsOpen(true)}
                 title="Override Loan Parameters"
+                aria-label={`Edit debt for ${customer.name}`}
                 className="action-icon-btn"
             >
                 <Edit2 size={15} />
@@ -57,16 +58,18 @@ export function EditCustomerBtn({ customer }: { customer: Customer }) {
 
             {isOpen && typeof document !== 'undefined' && createPortal(
                 <div className="modal-overlay" onClick={() => setIsOpen(false)}>
-                    <div className="modal-card animate-fade-in" onClick={(e) => e.stopPropagation()}>
+                    <div className="modal-card animate-fade-in" role="dialog" aria-modal="true" aria-labelledby="edit-customer-title" onKeyDown={(e) => { if (e.key === "Escape") setIsOpen(false); }} onClick={(e) => e.stopPropagation()}>
                         <button
+                            type="button"
+                            aria-label="Close customer editor"
                             onClick={() => setIsOpen(false)}
                             style={{ position: 'absolute', top: '1.25rem', right: '1.25rem', background: 'var(--bg-subtle)', border: 'none', borderRadius: '50%', width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-secondary)', cursor: 'pointer' }}
                         >
                             <X size={18} />
                         </button>
 
-                        <h3 style={{ marginTop: 0, marginBottom: '1.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '1.25rem' }}>
-                            <Edit2 size={20} /> Force-Override Loan
+                        <h3 id="edit-customer-title" style={{ marginTop: 0, marginBottom: '1.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '1.25rem' }}>
+                            <Edit2 size={20} /> Adjust customer balance
                         </h3>
 
                         <div style={{ background: 'var(--warning-bg)', border: '1px solid rgba(180, 83, 9, 0.2)', padding: '0.75rem 1rem', borderRadius: 'var(--radius-sm)', marginBottom: '1.25rem', display: 'flex', gap: '0.65rem', alignItems: 'flex-start' }}>
@@ -78,13 +81,13 @@ export function EditCustomerBtn({ customer }: { customer: Customer }) {
 
                         <form onSubmit={handleSave}>
                             <div className="form-group">
-                                <label>Legacy Debt (₹)</label>
-                                <input type="number" step="0.01" min="0" className="input-field" value={oldLoanObj} onChange={e => setOldLoanObj(e.target.value)} required />
+                                <label htmlFor={`legacy-debt-${customer.id}`}>Legacy debt (₹)</label>
+                                <input id={`legacy-debt-${customer.id}`} autoFocus type="number" step="0.01" min="0" className="input-field" value={oldLoanObj} onChange={e => setOldLoanObj(e.target.value)} required />
                             </div>
 
                             <div className="form-group">
-                                <label>App Debt (₹)</label>
-                                <input type="number" step="0.01" min="0" className="input-field" value={loanObj} onChange={e => setLoanObj(e.target.value)} required />
+                                <label htmlFor={`app-debt-${customer.id}`}>Application debt (₹)</label>
+                                <input id={`app-debt-${customer.id}`} type="number" step="0.01" min="0" className="input-field" value={loanObj} onChange={e => setLoanObj(e.target.value)} required />
                             </div>
 
                             <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1.75rem' }}>

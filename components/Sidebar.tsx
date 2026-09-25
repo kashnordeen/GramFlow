@@ -37,7 +37,7 @@ export function Sidebar({ permissions }: { permissions: string[] }) {
         <div className={styles.brandRow}>
           <Link href="/" className={styles.brand} aria-label="GramFlow dashboard">
             <span className={styles.logo}>
-              <Image src="/logo.png" alt="" width={40} height={40} priority />
+              <Image src="/brand-mark.svg" alt="" width={40} height={40} priority />
             </span>
             <span className={styles.brandCopy}>
               <strong>GramFlow</strong>

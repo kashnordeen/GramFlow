@@ -3,9 +3,11 @@
 import { useState, useEffect } from "react";
 import { getSettings, updateSettings } from "@/lib/actions/settings.actions";
 import { showToast } from "@/components/ToastProvider";
-import { Settings } from "lucide-react";
+import { Settings, SunMoon, ShieldCheck } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useAccess } from "@/components/AccessProvider";
+import { ThemeToggle } from "@/components/ui/ThemeToggle";
+import { WorkspaceHeader, WorkspacePanel } from "@/components/ui/Workspace";
 
 export default function SettingsPage() {
     const { hasPermission } = useAccess();
@@ -52,31 +54,20 @@ export default function SettingsPage() {
         }
     };
 
-    if (loading) return (
-        <div style={{ display: 'flex', justifyContent: 'center', margin: '4rem' }}>
-            <div style={{ fontSize: '1rem', color: 'var(--text-secondary)' }}>Loading settings...</div>
-        </div>
-    );
+    if (loading) return <div className="work-loading" role="status">Loading settings...</div>;
 
     if (!hasPermission("settings.manage")) return <div className="card-light" style={{ padding: "2rem" }}>You do not have permission to manage settings.</div>;
 
     return (
-        <div style={{ maxWidth: '640px', margin: '0 auto' }}>
-            <div style={{ marginBottom: "2rem", display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
-                <div style={{ width: '42px', height: '42px', borderRadius: 'var(--radius-md)', background: 'var(--bg-dark)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--accent)' }}>
-                    <Settings size={22} />
-                </div>
-                <div>
-                    <h1 style={{ margin: 0, fontSize: '1.75rem' }}>Global Settings</h1>
-                    <p style={{ margin: 0, color: 'var(--text-secondary)' }}>Configure standard inventory rates & special price tiers</p>
-                </div>
-            </div>
-
-            <div className="card-light" style={{ padding: '2.25rem' }}>
+        <div className="workspace-page">
+            <WorkspaceHeader eyebrow="WORKSPACE / PREFERENCES" title="Settings" description="Manage standard rates and tailor how your workspace appears." />
+            <div className="workspace-grid" data-layout="form">
+            <WorkspacePanel icon={<Settings size={20} />} title="Pricing rules" description="Default rates used when recording a sale." footer="Changes here affect future sales. Existing ledger entries remain unchanged.">
                 <form onSubmit={handleSubmit}>
                     <div className="form-group">
-                        <label>Standard Rate Per Gram (₹)</label>
+                        <label htmlFor="settings-rate">Standard rate per gram (₹)</label>
                         <input
+                            id="settings-rate"
                             type="number"
                             step="0.01"
                             className="input-field"
@@ -84,13 +75,14 @@ export default function SettingsPage() {
                             onChange={(e) => setRatePerGram(e.target.value)}
                             required
                         />
-                        <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>Default rate applied when sales fall outside special brackets.</p>
+                        <p className="field-hint">Applied when a sale falls outside the special weight brackets.</p>
                     </div>
 
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginTop: '1.25rem' }}>
+                    <div className="rate-tier-grid">
                         <div className="form-group" style={{ margin: 0 }}>
-                            <label>Special: 0.25g - 0.30g (₹)</label>
+                            <label htmlFor="settings-025">0.25g–0.30g rate (₹)</label>
                             <input
+                                id="settings-025"
                                 type="number"
                                 step="0.01"
                                 className="input-field"
@@ -101,8 +93,9 @@ export default function SettingsPage() {
                         </div>
 
                         <div className="form-group" style={{ margin: 0 }}>
-                            <label>Special: 0.50g - 0.60g (₹)</label>
+                            <label htmlFor="settings-050">0.50g–0.60g rate (₹)</label>
                             <input
+                                id="settings-050"
                                 type="number"
                                 step="0.01"
                                 className="input-field"
@@ -122,6 +115,16 @@ export default function SettingsPage() {
                         {submitting ? 'Saving Configuration...' : 'Save Settings'}
                     </button>
                 </form>
+            </WorkspacePanel>
+            <div className="workspace-side-stack">
+                <WorkspacePanel icon={<SunMoon size={20} />} title="Appearance" description="Choose the contrast that works for you." accent>
+                    <p style={{ marginBottom: '1rem' }}>Switch between Obsidian dark and a softer daylight workspace. Your choice is saved on this device.</p>
+                    <ThemeToggle />
+                </WorkspacePanel>
+                <WorkspacePanel icon={<ShieldCheck size={20} />} title="Data integrity" description="Pricing changes do not rewrite past sales.">
+                    <ul className="info-list"><li><ShieldCheck size={17} aria-hidden="true" /> Rate overrides on the sale page stay local to your browser.</li><li><ShieldCheck size={17} aria-hidden="true" /> Posted transactions retain their original values.</li></ul>
+                </WorkspacePanel>
+            </div>
             </div>
         </div>
     );

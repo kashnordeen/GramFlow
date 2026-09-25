@@ -44,6 +44,7 @@ export function EditBatchBtn({ batch }: { batch: StockBatch }) {
                 type="button"
                 onClick={() => setIsOpen(true)}
                 title="Edit Batch Details"
+                aria-label={`Edit stock batch ${batch.id}`}
                 className="action-icon-btn"
             >
                 <Edit2 size={15} />
@@ -51,15 +52,17 @@ export function EditBatchBtn({ batch }: { batch: StockBatch }) {
 
             {isOpen && typeof document !== 'undefined' && createPortal(
                 <div className="modal-overlay" onClick={() => setIsOpen(false)}>
-                    <div className="modal-card animate-fade-in" onClick={(e) => e.stopPropagation()}>
+                    <div className="modal-card animate-fade-in" role="dialog" aria-modal="true" aria-labelledby="edit-batch-title" onKeyDown={(e) => { if (e.key === "Escape") setIsOpen(false); }} onClick={(e) => e.stopPropagation()}>
                         <button
+                            type="button"
+                            aria-label="Close batch editor"
                             onClick={() => setIsOpen(false)}
                             style={{ position: 'absolute', top: '1.25rem', right: '1.25rem', background: 'var(--bg-subtle)', border: 'none', borderRadius: '50%', width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-secondary)', cursor: 'pointer' }}
                         >
                             <X size={18} />
                         </button>
 
-                        <h3 style={{ marginTop: 0, marginBottom: '1.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '1.25rem' }}>
+                        <h3 id="edit-batch-title" style={{ marginTop: 0, marginBottom: '1.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '1.25rem' }}>
                             <Edit2 size={20} /> Modify Stock Batch
                         </h3>
 
@@ -74,12 +77,12 @@ export function EditBatchBtn({ batch }: { batch: StockBatch }) {
 
                         <form onSubmit={handleSave}>
                             <div className="form-group">
-                                <label>Total Ingested Grams</label>
-                                <input type="number" step="0.01" min={soldAmount > 0 ? soldAmount : 0.01} className="input-field" value={grams} onChange={e => setGrams(e.target.value)} required />
+                                <label htmlFor={`batch-total-${batch.id}`}>Total received (g)</label>
+                                <input id={`batch-total-${batch.id}`} autoFocus type="number" step="0.01" min={soldAmount > 0 ? soldAmount : 0.01} className="input-field" value={grams} onChange={e => setGrams(e.target.value)} required />
                             </div>
                             <div className="form-group">
-                                <label>Cost Rate (per gram) ₹</label>
-                                <input type="number" step="0.01" className="input-field" value={price} onChange={e => setPrice(e.target.value)} required />
+                                <label htmlFor={`batch-cost-${batch.id}`}>Cost rate per gram (₹)</label>
+                                <input id={`batch-cost-${batch.id}`} type="number" step="0.01" className="input-field" value={price} onChange={e => setPrice(e.target.value)} required />
                             </div>
 
                             <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1.75rem' }}>

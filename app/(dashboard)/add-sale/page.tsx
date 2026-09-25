@@ -6,11 +6,12 @@ import { createSale } from "@/lib/actions/sale.actions";
 import { getTotalStock } from "@/lib/actions/stock.actions";
 import { getSettings } from "@/lib/actions/settings.actions";
 import { showToast } from "@/components/ToastProvider";
-import { Calculator } from "lucide-react";
+import { Calculator, CircleCheck, Layers3, ReceiptText, ShieldCheck } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { PremiumCheckmark } from "@/components/ui/PremiumCheckmark";
 import { Customer } from "@/types";
 import { useAccess } from "@/components/AccessProvider";
+import { WorkspaceHeader, WorkspacePanel } from "@/components/ui/Workspace";
 
 export default function AddSalePage() {
     const { hasPermission } = useAccess();
@@ -117,11 +118,7 @@ export default function AddSalePage() {
         }
     };
 
-    if (loading) return (
-        <div style={{ display: 'flex', justifyContent: 'center', margin: '4rem' }}>
-            <div style={{ fontSize: '1rem', color: 'var(--text-secondary)' }}>Loading transaction terminal...</div>
-        </div>
-    );
+    if (loading) return <div className="work-loading" role="status">Loading sales workspace...</div>;
 
     if (!hasPermission("sales.create")) return <div className="card-light" style={{ padding: "2rem" }}>You do not have permission to create sales.</div>;
 
@@ -137,19 +134,15 @@ export default function AddSalePage() {
                 </div>
             )}
 
-            <div style={{ marginBottom: "2rem" }}>
-                <h1>Record a Sale</h1>
-                <p>Register transaction details. Deductions execute via strict FIFO lineage.</p>
-            </div>
-
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '1.5rem', alignItems: 'start' }}>
-                {/* Form Card */}
-                <div className="card-light" style={{ padding: '2rem' }}>
+            <div className="workspace-page">
+            <WorkspaceHeader eyebrow="SALES / NEW TRANSACTION" title="Record a sale" description="Capture the customer, weight and payment in one guided flow. FIFO allocation is handled automatically." aside={<div className="workspace-hero-stat"><span>Available in vault</span><strong>{totalStock.toFixed(2)}g</strong></div>} />
+            <div className="workspace-grid" data-layout="form">
+                <WorkspacePanel icon={<ReceiptText size={20} />} title="Sale details" description="Complete the required fields to post the transaction." footer={<span>Every posted sale is written to the ledger and audit history.</span>}>
                     <form onSubmit={handleSubmit}>
                         <div className="form-group">
-                            <label>Select Customer <span style={{ color: 'var(--danger)' }}>*</span></label>
-                            <select className="input-field" value={customerId} onChange={(e) => setCustomerId(e.target.value)} required>
-                                <option value="">-- Choose Customer --</option>
+                            <label htmlFor="sale-customer">Customer <span aria-hidden="true">*</span></label>
+                            <select id="sale-customer" className="input-field" value={customerId} onChange={(e) => setCustomerId(e.target.value)} required>
+                                <option value="">Choose a customer</option>
                                 {customers.map(c => (
                                     <option key={c.id} value={c.id}>{c.name} {c.phone ? "(" + c.phone + ")" : ""}</option>
                                 ))}
@@ -158,12 +151,12 @@ export default function AddSalePage() {
 
                         <div className="form-group">
                             <div className="flex-between">
-                                <label>Grams Sold <span style={{ color: 'var(--danger)' }}>*</span></label>
+                                <label htmlFor="sale-grams">Weight sold (g) <span aria-hidden="true">*</span></label>
                                 <span style={{ fontSize: '0.8rem', fontWeight: 600, color: numGrams > totalStock ? 'var(--danger)' : 'var(--text-muted)' }}>
                                     Vault: {totalStock.toFixed(2)}g
                                 </span>
                             </div>
-                            <input type="number" step="0.01" min="0.01" max={totalStock} className="input-field" placeholder="e.g. 0.30" value={grams} onChange={(e) => setGrams(e.target.value)} required />
+                            <input id="sale-grams" type="number" step="0.01" min="0.01" max={totalStock} className="input-field" placeholder="0.30" value={grams} onChange={(e) => setGrams(e.target.value)} required />
                         </div>
 
                         <details
@@ -180,23 +173,23 @@ export default function AddSalePage() {
                             </summary>
                             <div style={{ marginTop: '1rem', display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
                                 <div className="form-group" style={{ margin: 0 }}>
-                                    <label>Rate Per Gram (₹)</label>
-                                    <input type="number" step="0.01" className="input-field" value={activeRatePerGram} onChange={(e) => {
+                                <label htmlFor="sale-rate">Rate per gram (₹)</label>
+                                    <input id="sale-rate" type="number" step="0.01" className="input-field" value={activeRatePerGram} onChange={(e) => {
                                         setActiveRatePerGram(e.target.value);
                                         localStorage.setItem("override_ratePerGram", e.target.value);
                                     }} />
                                 </div>
-                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                                <div className="rate-tier-grid">
                                     <div className="form-group" style={{ margin: 0 }}>
-                                        <label>0.25g - 0.30g Bracket (₹)</label>
-                                        <input type="number" step="0.01" className="input-field" value={activeSpecial025} onChange={(e) => {
+                                        <label htmlFor="sale-special-025">0.25g–0.30g bracket (₹)</label>
+                                        <input id="sale-special-025" type="number" step="0.01" className="input-field" value={activeSpecial025} onChange={(e) => {
                                             setActiveSpecial025(e.target.value);
                                             localStorage.setItem("override_special025", e.target.value);
                                         }} />
                                     </div>
                                     <div className="form-group" style={{ margin: 0 }}>
-                                        <label>0.50g - 0.60g Bracket (₹)</label>
-                                        <input type="number" step="0.01" className="input-field" value={activeSpecial050} onChange={(e) => {
+                                        <label htmlFor="sale-special-050">0.50g–0.60g bracket (₹)</label>
+                                        <input id="sale-special-050" type="number" step="0.01" className="input-field" value={activeSpecial050} onChange={(e) => {
                                             setActiveSpecial050(e.target.value);
                                             localStorage.setItem("override_special050", e.target.value);
                                         }} />
@@ -206,72 +199,42 @@ export default function AddSalePage() {
                         </details>
 
                         <div className="form-group">
-                            <label>Manual Discount (₹)</label>
-                            <input type="number" step="1" min="0" className="input-field" placeholder="0" value={discount} onChange={(e) => setDiscount(e.target.value)} />
+                            <label htmlFor="sale-discount">Discount (₹)</label>
+                            <input id="sale-discount" type="number" step="1" min="0" className="input-field" placeholder="0" value={discount} onChange={(e) => setDiscount(e.target.value)} />
                         </div>
 
                         <div className="form-group">
-                            <label>Amount Received (₹) <span style={{ color: 'var(--danger)' }}>*</span></label>
-                            <input type="number" step="1" min="0" max={finalAmount || undefined} className="input-field" placeholder="0" value={amountReceived} onChange={(e) => setAmountReceived(e.target.value)} required />
+                            <label htmlFor="sale-received">Amount received (₹) <span aria-hidden="true">*</span></label>
+                            <input id="sale-received" type="number" step="1" min="0" max={finalAmount || undefined} className="input-field" placeholder="0" value={amountReceived} onChange={(e) => setAmountReceived(e.target.value)} required />
                         </div>
 
                         <div className="form-group">
-                            <label>Stock Allocation</label>
-                            <div className="input-field" style={{ color: 'var(--text-secondary)' }}>FIFO enforced · oldest available batches are locked and consumed first</div>
+                            <div className="work-pill"><Layers3 size={15} aria-hidden="true" /> FIFO allocation enabled</div>
+                            <p className="field-hint">The oldest available batches are consumed first.</p>
                         </div>
 
                         <div className="form-group">
-                            <label>Comments / Notes</label>
-                            <textarea className="input-field" placeholder="Notes regarding this transaction..." rows={2} value={comments} onChange={(e) => setComments(e.target.value)} style={{ resize: 'vertical' }} />
+                            <label htmlFor="sale-notes">Notes</label>
+                            <textarea id="sale-notes" className="input-field" placeholder="Optional context for this sale" rows={2} value={comments} onChange={(e) => setComments(e.target.value)} style={{ resize: 'vertical' }} />
                         </div>
 
                         <button type="submit" className="btn btn-primary" style={{ width: '100%', marginTop: '1rem', padding: '0.9rem' }} disabled={submitting || customers.length === 0}>
-                            {submitting ? 'Recording Transaction...' : 'Finalize Sale'}
+                            {submitting ? 'Recording sale...' : 'Record sale'}
                         </button>
                         {customers.length === 0 && (
                             <p style={{ color: 'var(--danger)', fontSize: '0.8rem', textAlign: 'center', marginTop: '0.75rem' }}>Please register a customer before recording sales.</p>
                         )}
                     </form>
-                </div>
+                </WorkspacePanel>
 
-                {/* Computation Summary Card */}
-                <div>
-                    <div className="card-light" style={{ position: 'sticky', top: '90px' }}>
-                        <div className="flex-between" style={{ borderBottom: '1px solid var(--border-subtle)', paddingBottom: '1rem', marginBottom: '1.25rem' }}>
-                            <h3 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '1.15rem' }}>
-                                <Calculator size={20} /> Live Computation
-                            </h3>
-                        </div>
-
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                            <div className="flex-between">
-                                <span style={{ color: 'var(--text-secondary)' }}>Gross Amount</span>
-                                <span style={{ fontFamily: 'monospace', fontWeight: 600, fontSize: '1.15rem' }}>₹{grossAmount.toFixed(2)}</span>
-                            </div>
-
-                            <div className="flex-between">
-                                <span style={{ color: 'var(--text-secondary)' }}>Discount Applied</span>
-                                <span style={{ fontFamily: 'monospace', fontWeight: 600, fontSize: '1.15rem', color: numDiscount > 0 ? 'var(--danger)' : 'var(--text-primary)' }}>
-                                    -₹{numDiscount.toFixed(2)}
-                                </span>
-                            </div>
-
-                            <div className="flex-between" style={{ borderTop: '1px dashed var(--border-subtle)', paddingTop: '1rem' }}>
-                                <span style={{ fontWeight: 700, fontSize: '1rem' }}>Final Billing</span>
-                                <span style={{ fontFamily: 'monospace', fontWeight: 700, fontSize: '1.6rem', color: 'var(--text-primary)' }}>
-                                    ₹{finalAmount.toFixed(2)}
-                                </span>
-                            </div>
-
-                            <div className="flex-between" style={{ background: 'var(--bg-subtle)', padding: '1rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-subtle)' }}>
-                                <span style={{ color: 'var(--text-secondary)', fontWeight: 500, fontSize: '0.85rem' }}>Remaining Loan Debt</span>
-                                <span style={{ fontFamily: 'monospace', fontWeight: 700, fontSize: '1.25rem', color: balance > 0 ? 'var(--warning)' : 'var(--success)' }}>
-                                    ₹{balance.toFixed(2)}
-                                </span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+                <WorkspacePanel icon={<Calculator size={20} />} title="Live calculation" description="Your billing preview updates as you enter values." accent>
+                    <div className="metric-line"><span>Gross amount</span><strong>₹{grossAmount.toFixed(2)}</strong></div>
+                    <div className="metric-line"><span>Discount</span><strong>−₹{numDiscount.toFixed(2)}</strong></div>
+                    <div className="metric-total"><span>Final bill</span><strong>₹{finalAmount.toFixed(2)}</strong></div>
+                    <div className="metric-line"><span>Outstanding after payment</span><strong style={{ color: balance > 0 ? 'var(--warning)' : 'var(--success)' }}>₹{balance.toFixed(2)}</strong></div>
+                    <ul className="info-list" style={{ marginTop: '1rem' }}><li><ShieldCheck size={17} aria-hidden="true" /> FIFO batch lineage is recorded automatically.</li><li><CircleCheck size={17} aria-hidden="true" /> Partial payment creates a customer balance.</li></ul>
+                </WorkspacePanel>
+            </div>
             </div>
         </>
     );

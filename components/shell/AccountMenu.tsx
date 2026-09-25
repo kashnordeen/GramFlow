@@ -15,6 +15,7 @@ interface AccountMenuProps {
     name: string;
     permissions?: string[];
     roles?: string[];
+    has_password?: boolean;
   };
 }
 
@@ -89,6 +90,7 @@ export function AccountMenu({ compact = false, user }: AccountMenuProps) {
         setIsOpen={setModalOpen}
         currentEmail={user.email}
         currentName={user.name}
+        hasPassword={user.has_password !== false}
       />
     </>
   );

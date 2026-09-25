@@ -43,6 +43,7 @@ export function EditSaleBtn({ sale }: { sale: Sale }) {
                 type="button"
                 onClick={() => setIsOpen(true)}
                 title="Edit Sale Details"
+                aria-label={`Edit sale ${sale.id}`}
                 className="action-icon-btn"
             >
                 <Edit2 size={15} />
@@ -50,22 +51,25 @@ export function EditSaleBtn({ sale }: { sale: Sale }) {
 
             {isOpen && typeof document !== 'undefined' && createPortal(
                 <div className="modal-overlay" onClick={() => setIsOpen(false)}>
-                    <div className="modal-card animate-fade-in" onClick={(e) => e.stopPropagation()}>
+                    <div className="modal-card animate-fade-in" role="dialog" aria-modal="true" aria-labelledby="edit-sale-title" onKeyDown={(e) => { if (e.key === "Escape") setIsOpen(false); }} onClick={(e) => e.stopPropagation()}>
                         <button
+                            type="button"
+                            aria-label="Close sale editor"
                             onClick={() => setIsOpen(false)}
                             style={{ position: 'absolute', top: '1.25rem', right: '1.25rem', background: 'var(--bg-subtle)', border: 'none', borderRadius: '50%', width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-secondary)', cursor: 'pointer' }}
                         >
                             <X size={18} />
                         </button>
 
-                        <h3 style={{ marginTop: 0, marginBottom: '1.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '1.25rem' }}>
-                            <Edit2 size={20} /> Modify Sale Entry
+                        <h3 id="edit-sale-title" style={{ marginTop: 0, marginBottom: '1.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '1.25rem' }}>
+                            <Edit2 size={20} /> Edit sale
                         </h3>
 
                         <form onSubmit={handleSave}>
                             <div className="form-group">
-                                <label>Grams Sold (g)</label>
+                                <label htmlFor={`sale-weight-${sale.id}`}>Weight sold (g)</label>
                                 <input
+                                    id={`sale-weight-${sale.id}`}
                                     type="number"
                                     step="0.01"
                                     className="input-field"
@@ -78,12 +82,12 @@ export function EditSaleBtn({ sale }: { sale: Sale }) {
                                 </p>
                             </div>
                             <div className="form-group">
-                                <label>Discount Applied (₹)</label>
-                                <input type="number" step="0.01" className="input-field" value={discount} onChange={e => setDiscount(e.target.value)} required />
+                                <label htmlFor={`sale-discount-${sale.id}`}>Discount (₹)</label>
+                                <input id={`sale-discount-${sale.id}`} autoFocus type="number" step="0.01" className="input-field" value={discount} onChange={e => setDiscount(e.target.value)} required />
                             </div>
                             <div className="form-group">
-                                <label>Amount Received (₹)</label>
-                                <input type="number" step="0.01" className="input-field" value={received} onChange={e => setReceived(e.target.value)} required />
+                                <label htmlFor={`sale-received-${sale.id}`}>Amount received (₹)</label>
+                                <input id={`sale-received-${sale.id}`} type="number" step="0.01" className="input-field" value={received} onChange={e => setReceived(e.target.value)} required />
                             </div>
 
                             <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1.75rem' }}>

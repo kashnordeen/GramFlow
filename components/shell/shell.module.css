@@ -363,6 +363,24 @@
   }
 }
 
+:global(html[data-theme="light"]) .sidebar,
+:global(html[data-theme="light"]) .mobileNav {
+  background: rgb(255 255 255 / 0.94);
+}
+
+:global(html[data-theme="light"]) .navLink:hover {
+  border-color: var(--vault-border);
+}
+
+:global(html[data-theme="light"]) .navLink[aria-current="page"] {
+  border-color: color-mix(in srgb, var(--vault-lime) 24%, transparent);
+  background: color-mix(in srgb, var(--vault-lime) 9%, white);
+}
+
+:global(html[data-theme="light"]) .statusModule {
+  background: var(--vault-surface-2);
+}
+
 @media (min-width: 768px) {
   :global(.main-content) {
     margin-left: 248px;

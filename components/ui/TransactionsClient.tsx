@@ -67,11 +67,12 @@ export function TransactionsClient({ initialSales }: { initialSales: Sale[] }) {
     return (
         <>
             {/* Filters Header */}
-            <div className="flex-between" style={{ marginBottom: "1.5rem", flexWrap: "wrap", gap: "1rem" }}>
+            <div className="transaction-toolbar">
                 <div className="search-box" style={{ width: '100%', maxWidth: '380px' }}>
                     <Search size={18} style={{ color: 'var(--text-muted)' }} />
                     <input
                         type="text"
+                        aria-label="Search transactions"
                         placeholder="Search by customer, notes, amount..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
@@ -81,6 +82,7 @@ export function TransactionsClient({ initialSales }: { initialSales: Sale[] }) {
                 <div style={{ position: "relative", minWidth: "200px" }}>
                     <select
                         className="input-field"
+                        aria-label="Filter by payment status"
                         value={statusFilter}
                         onChange={(e) => setStatusFilter(e.target.value)}
                         style={{ cursor: 'pointer', paddingRight: '2.5rem' }}
@@ -111,7 +113,7 @@ export function TransactionsClient({ initialSales }: { initialSales: Sale[] }) {
                             <React.Fragment key={dayString}>
                                 {/* Day-wise Header Separator */}
                                 <tr>
-                                    <td colSpan={7} style={{ background: 'var(--bg-subtle)', padding: '0.75rem 1.25rem', fontWeight: 700, color: 'var(--text-primary)', borderBottom: '1px solid var(--border-subtle)', borderTop: groupIndex > 0 ? '1px solid var(--border-subtle)' : 'none', fontSize: '0.82rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                    <td colSpan={7} style={{ background: 'var(--bg-subtle)', padding: '0.75rem 1.25rem', fontWeight: 700, color: 'var(--text-primary)', borderBottom: '1px solid var(--border-subtle)', borderTop: groupIndex > 0 ? '1px solid var(--border-subtle)' : 'none', fontSize: '0.82rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
                                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }} suppressHydrationWarning>
                                             <Calendar size={14} style={{ color: 'var(--text-secondary)' }} />
                                             {dayString}

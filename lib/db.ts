@@ -2,6 +2,7 @@ import { Pool, PoolClient, QueryResult, QueryResultRow, types } from "pg";
 
 types.setTypeParser(1700, (value) => Number(value));
 types.setTypeParser(20, (value) => Number(value));
+types.setTypeParser(1184, (value) => new Date(value).toISOString());
 
 const globalForDb = globalThis as unknown as { gramflowPool?: Pool };
 

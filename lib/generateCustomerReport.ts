@@ -127,7 +127,7 @@ export async function generateCustomerReport(data: CustomerLedgerData) {
     // ---------------------------------------------------------
 
     const tableBody = timeline.map((item: TimelineItem) => {
-        const d = new Date(item.created_at.replace(' ', 'T') + 'Z');
+        const d = new Date(item.created_at);
         const dateStr = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: '2-digit' });
 
         let typeStr = item.type === 'sale' ? 'Sale' : 'Payment';

@@ -179,7 +179,7 @@ export async function GET(_req: NextRequest) {
                 <tbody>
                     ${stockBatches.map(b => `
                         <tr>
-                            <td style="color:#666">${new Date(b.created_at.replace(' ', 'T') + 'Z').toLocaleDateString()}</td>
+                            <td style="color:#666">${new Date(b.created_at).toLocaleDateString()}</td>
                             <td><strong>Batch #${b.id}</strong> (Original: ${b.grams.toFixed(2)}g)</td>
                             <td class="text-right amount">${b.remaining_grams.toFixed(2)}g</td>
                             <td class="text-right amount">₹${b.price_per_gram.toFixed(0)}/g</td>
@@ -206,7 +206,7 @@ export async function GET(_req: NextRequest) {
             const isLoan = s.balance > 0;
             return `
                         <tr>
-                            <td style="color:#666">${new Date(s.created_at.replace(' ', 'T') + 'Z').toLocaleString([], { year: 'numeric', month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</td>
+                            <td style="color:#666">${new Date(s.created_at).toLocaleString([], { year: 'numeric', month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</td>
                             <td>${escapeHtml(s.customer_name)}</td>
                             <td class="text-right amount">${s.grams_sold.toFixed(2)}g</td>
                             <td class="text-right amount">₹${s.final_amount.toFixed(2)}</td>

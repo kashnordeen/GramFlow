@@ -42,7 +42,7 @@ export function TransactionsClient({ initialSales }: { initialSales: Sale[] }) {
         const groups: Record<string, Sale[]> = {};
 
         filteredSales.forEach(sale => {
-            const d = new Date(sale.created_at.replace(' ', 'T') + 'Z');
+            const d = new Date(sale.created_at);
             const dayString = d.toLocaleDateString('en-US', {
                 weekday: 'long',
                 year: 'numeric',
@@ -58,8 +58,8 @@ export function TransactionsClient({ initialSales }: { initialSales: Sale[] }) {
 
         // Ensure chronological descending order of the object keys using the first item's true timestamp
         return Object.entries(groups).sort((a, b) => {
-            const timeA = new Date(a[1][0].created_at.replace(' ', 'T') + 'Z').getTime();
-            const timeB = new Date(b[1][0].created_at.replace(' ', 'T') + 'Z').getTime();
+            const timeA = new Date(a[1][0].created_at).getTime();
+            const timeB = new Date(b[1][0].created_at).getTime();
             return timeB - timeA;
         });
     }, [filteredSales]);
@@ -123,7 +123,7 @@ export function TransactionsClient({ initialSales }: { initialSales: Sale[] }) {
 
                                 {/* Transactions for that specific day */}
                                 {salesInDay.map((sale: Sale) => {
-                                    const d = new Date(sale.created_at.replace(' ', 'T') + 'Z');
+                                    const d = new Date(sale.created_at);
                                     const time = d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
                                     const isLoan = sale.balance > 0;
                                     const isReversed = sale.status === 'REVERSED';
@@ -205,7 +205,7 @@ export function TransactionsClient({ initialSales }: { initialSales: Sale[] }) {
             {/* Mobile Cards View (< 768px) */}
             <div className="mobile-cards-view">
                 {filteredSales.map((sale: Sale) => {
-                    const d = new Date(sale.created_at.replace(' ', 'T') + 'Z');
+                    const d = new Date(sale.created_at);
                     const date = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
                     const time = d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
                     const isLoan = sale.balance > 0;

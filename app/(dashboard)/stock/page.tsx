@@ -109,7 +109,7 @@ export default function StockPage() {
                     </thead>
                     <tbody>
                         {batches.map((b: StockBatch) => {
-                            const d = new Date(b.created_at.replace(' ', 'T') + 'Z');
+                            const d = new Date(b.created_at);
                             const date = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
                             const time = d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
                             const isExhausted = b.remaining_grams === 0;

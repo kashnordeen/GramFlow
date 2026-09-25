@@ -40,7 +40,7 @@ export async function generateReceipt(sale: Sale) {
     const TEXT_MUTED: [number, number, number] = [100, 116, 139]; // Slate 500
 
     // Dates
-    const d = new Date(sale.created_at.replace(' ', 'T') + 'Z');
+    const d = new Date(sale.created_at);
     const dateStr = d.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
     const timeStr = d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
 

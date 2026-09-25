@@ -1057,7 +1057,7 @@ p {
   display: none;
 }
 
-@media (max-width: 768px) {
+@media (max-width: 767px) {
   .sidebar {
     transform: translateX(-100%);
     width: 280px !important;

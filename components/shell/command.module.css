@@ -411,6 +411,16 @@
   }
 }
 
+@media (min-width: 768px) and (max-width: 900px) {
+  .commandBar {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .pageContext {
+    display: none;
+  }
+}
+
 @media (max-width: 767px) {
   .commandBar {
     display: none;

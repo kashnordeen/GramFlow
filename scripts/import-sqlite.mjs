@@ -27,7 +27,13 @@ try {
     for (const row of rows) {
       const names = [...selected];
       const values = names.map((name) => row[name]);
-      if (table === "stock_batches") { names.push("status"); values.push(Number(row.remaining_grams) > 0 ? "OPEN" : "CLOSED"); }
+      if (table === "stock_batches") {
+        const priceIndex = names.indexOf("price_per_gram");
+        if (priceIndex < 0) throw new Error("SQLite stock_batches.price_per_gram is required for import");
+        names[priceIndex] = "total_cost";
+        values[priceIndex] = Math.round(Number(row.grams) * Number(row.price_per_gram) * 100) / 100;
+        names.push("status"); values.push(Number(row.remaining_grams) > 0 ? "OPEN" : "CLOSED");
+      }
       if (table === "sale_batch_assignments") {
         names.push("unit_cost");
         const batch = source.prepare("SELECT price_per_gram FROM stock_batches WHERE id=?").get(row.batch_id);
@@ -56,7 +62,7 @@ try {
   };
   const batches = (await target.query("SELECT * FROM stock_batches ORDER BY id")).rows;
   for (const batch of batches) {
-    const value = Math.round(Number(batch.grams) * Number(batch.price_per_gram) * 100) / 100;
+    const value = Number(batch.total_cost);
     if (value > 0) await post(`MIG-STOCK-${batch.id}`, "MIGRATED_STOCK_RECEIPT", "stock_batch", batch.id, `Migrated stock batch #${batch.id}`,
       [{ code: "1200", debit: value, credit: 0 }, { code: "3000", debit: 0, credit: value }]);
   }

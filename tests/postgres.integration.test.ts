@@ -6,6 +6,7 @@ import path from "node:path";
 import pg from "pg";
 import { allocateFifo } from "../lib/inventory";
 import { loadDashboardMetrics } from "../lib/dashboard";
+import { loadStockBatches } from "../lib/stock";
 
 const url = process.env.TEST_DATABASE_URL;
 const schema = `gramflow_test_${Date.now()}_${Math.random().toString(16).slice(2)}`;
@@ -19,6 +20,13 @@ test("PostgreSQL connects, migrations apply, and seed is deterministic", { skip:
   await admin!.query(await migration("001_initial_postgresql.sql"));
   await admin!.query(await migration("002_integrity_triggers.sql"));
   await admin!.query(await migration("003_release_hardening.sql"));
+  await admin!.query(await migration("004_google_identity.sql"));
+  const legacyBatch = await admin!.query<{ id: number }>(
+    "INSERT INTO stock_batches(grams,price_per_gram,remaining_grams) VALUES(10,800,10) RETURNING id",
+  );
+  await admin!.query(await migration("005_total_batch_cost.sql"));
+  const converted = await admin!.query<{ total_cost: number }>("SELECT total_cost FROM stock_batches WHERE id=$1", [legacyBatch.rows[0].id]);
+  assert.equal(Number(converted.rows[0].total_cost), 8000);
   await admin!.query(await readFile(path.join(process.cwd(), "db", "seed.sql"), "utf8"));
   await admin!.query(await readFile(path.join(process.cwd(), "db", "seed.sql"), "utf8"));
   const result = await admin!.query("SELECT count(*)::int AS count FROM roles");
@@ -27,11 +35,12 @@ test("PostgreSQL connects, migrations apply, and seed is deterministic", { skip:
 
 test("FIFO partially consumes oldest batch then continues", { skip: !url }, async () => {
   await admin!.query("TRUNCATE stock_batches RESTART IDENTITY CASCADE");
-  await admin!.query("INSERT INTO stock_batches(grams,price_per_gram,remaining_grams,created_at) VALUES(3,10,3,now()-interval '1 day'),(5,20,5,now())");
+  await admin!.query("INSERT INTO stock_batches(grams,total_cost,remaining_grams,created_at) VALUES(3,30,3,now()-interval '1 day'),(5,100,5,now())");
   await admin!.query("BEGIN");
   const allocations = await allocateFifo(admin! as unknown as pg.PoolClient, 4);
   await admin!.query("COMMIT");
   assert.deepEqual(allocations.map((item) => item.grams), [3, 1]);
+  assert.deepEqual(allocations.map((item) => item.unitCost), [10, 20]);
   const rows = await admin!.query("SELECT remaining_grams::float AS value FROM stock_batches ORDER BY id");
   assert.deepEqual(rows.rows.map((row) => row.value), [0, 4]);
 });
@@ -46,7 +55,7 @@ test("FIFO rolls back on insufficient stock", { skip: !url }, async () => {
 
 test("concurrent FIFO allocations cannot oversell the same row", { skip: !url }, async () => {
   await admin!.query("TRUNCATE stock_batches RESTART IDENTITY CASCADE");
-  await admin!.query("INSERT INTO stock_batches(grams,price_per_gram,remaining_grams) VALUES(10,10,10)");
+  await admin!.query("INSERT INTO stock_batches(grams,total_cost,remaining_grams) VALUES(10,100,10)");
   const a = new pg.Client({ connectionString: url! }); const b = new pg.Client({ connectionString: url! });
   await Promise.all([a.connect(), b.connect()]);
   await Promise.all([a.query(`SET search_path TO ${schema}`), b.query(`SET search_path TO ${schema}`)]);
@@ -67,11 +76,11 @@ test("dashboard metrics use posted sales and aggregate FIFO costs once per sale"
     "INSERT INTO customers(name,total_loan) VALUES('Dashboard Customer',50) RETURNING id",
   );
   const batches = await admin!.query<{ id: number }>(`
-    INSERT INTO stock_batches(grams,price_per_gram,remaining_grams,created_at)
+    INSERT INTO stock_batches(grams,total_cost,remaining_grams,created_at)
     VALUES
-      (10,10,6,now()-interval '3 days'),
-      (10,20,8,now()-interval '2 days'),
-      (10,10,9,now()-interval '1 day')
+      (10,100,6,now()-interval '3 days'),
+      (10,200,8,now()-interval '2 days'),
+      (10,100,9,now()-interval '1 day')
     RETURNING id
   `);
   const todaySale = await admin!.query<{ id: number }>(`
@@ -123,6 +132,50 @@ test("dashboard metrics use posted sales and aggregate FIFO costs once per sale"
   assert.equal(metrics.recentSales.length, 2);
   assert.equal(metrics.trend.reduce((sum, point) => sum + point.sales, 0), 180);
   assert.equal(metrics.trend.reduce((sum, point) => sum + point.profit, 0), 100);
+});
+
+test("stock revenue and profit include only posted sales and their original unit cost", { skip: !url }, async () => {
+  await admin!.query("TRUNCATE customers,stock_batches RESTART IDENTITY CASCADE");
+  const customer = await admin!.query<{ id: number }>("INSERT INTO customers(name) VALUES('Margin Customer') RETURNING id");
+  const batch = await admin!.query<{ id: number }>(
+    "INSERT INTO stock_batches(grams,total_cost,remaining_grams) VALUES(10,800,8) RETURNING id",
+  );
+  const unsold = await admin!.query<{ id: number }>(
+    "INSERT INTO stock_batches(grams,total_cost,remaining_grams) VALUES(5,500,5) RETURNING id",
+  );
+  const sale = await admin!.query<{ id: number }>(
+    "INSERT INTO sales(customer_id,grams_sold,gross_amount,discount,final_amount,amount_received,balance) VALUES($1,2,200,20,180,180,0) RETURNING id",
+    [customer.rows[0].id],
+  );
+  await admin!.query(
+    "INSERT INTO sale_batch_assignments(sale_id,batch_id,grams_deducted,unit_cost) VALUES($1,$2,2,80)",
+    [sale.rows[0].id, batch.rows[0].id],
+  );
+
+  const stockQuery = <T extends pg.QueryResultRow>(text: string, values: readonly unknown[] = []) =>
+    admin!.query<T>(text, [...values]);
+  let batches = await loadStockBatches(stockQuery);
+  let soldBatch = batches.find((item) => item.id === batch.rows[0].id)!;
+  const unsoldBatch = batches.find((item) => item.id === unsold.rows[0].id)!;
+
+  assert.equal(soldBatch.total_cost, 800);
+  assert.equal(soldBatch.total_revenue, 180);
+  assert.equal(soldBatch.realized_cost, 160);
+  assert.equal(soldBatch.total_revenue! - soldBatch.realized_cost!, 20);
+  assert.equal(unsoldBatch.total_revenue, 0);
+  assert.equal(unsoldBatch.realized_cost, 0);
+
+  await admin!.query("UPDATE stock_batches SET total_cost=900 WHERE id=$1", [batch.rows[0].id]);
+  batches = await loadStockBatches(stockQuery);
+  soldBatch = batches.find((item) => item.id === batch.rows[0].id)!;
+  assert.equal(soldBatch.total_cost, 900);
+  assert.equal(soldBatch.realized_cost, 160);
+
+  await admin!.query("UPDATE sales SET status='REVERSED' WHERE id=$1", [sale.rows[0].id]);
+  batches = await loadStockBatches(stockQuery);
+  soldBatch = batches.find((item) => item.id === batch.rows[0].id)!;
+  assert.equal(soldBatch.total_revenue, 0);
+  assert.equal(soldBatch.realized_cost, 0);
 });
 
 test("database rejects unbalanced journals and audit modification", { skip: !url }, async () => {

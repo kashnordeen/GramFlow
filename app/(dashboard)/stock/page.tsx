@@ -19,6 +19,7 @@ export default function StockPage() {
 
     // Add Batch Form
     const [grams, setGrams] = useState("");
+    const [totalCost, setTotalCost] = useState("");
     const [adding, setAdding] = useState(false);
 
     async function loadData() {
@@ -42,6 +43,7 @@ export default function StockPage() {
 
         const fd = new FormData();
         fd.append("grams", grams);
+        fd.append("total_cost", totalCost);
 
         const res = await addStockBatch(fd);
         setAdding(false);
@@ -51,6 +53,7 @@ export default function StockPage() {
         } else {
             showToast("Stock batch recorded! FIFO mechanism updated.", "success");
             setGrams("");
+            setTotalCost("");
             loadData();
         }
     };
@@ -62,7 +65,7 @@ export default function StockPage() {
             <WorkspaceHeader eyebrow="INVENTORY / BATCHES" title="Stock vault" description="Track every incoming batch and its remaining weight. The oldest available stock is used first." aside={<div className="workspace-hero-stat"><span>Available stock</span><strong>{totalStock.toFixed(2)}g</strong></div>} />
 
             <div className="workspace-grid">
-                {hasPermission("inventory.create") && <WorkspacePanel icon={<PackagePlus size={20} />} title="Receive stock" description="Add the weight of a newly arrived batch.">
+                {hasPermission("inventory.create") && <WorkspacePanel icon={<PackagePlus size={20} />} title="Receive stock" description="Record the weight and total purchase cost of a new batch.">
                     <form onSubmit={handleAddBatch}>
                         <div className="form-group">
                             <label htmlFor="batch-grams">Batch weight (g) <span aria-hidden="true">*</span></label>
@@ -77,9 +80,22 @@ export default function StockPage() {
                                 required
                                 placeholder="e.g. 10.50"
                             />
-                            <p className="field-hint">
-                                Cost price per gram is read from the secured server environment at ingestion time.
-                            </p>
+                        </div>
+
+                        <div className="form-group">
+                            <label htmlFor="batch-total-cost">Total batch cost (₹) <span aria-hidden="true">*</span></label>
+                            <input
+                                id="batch-total-cost"
+                                type="number"
+                                step="0.01"
+                                min="0.01"
+                                className="input-field"
+                                value={totalCost}
+                                onChange={e => setTotalCost(e.target.value)}
+                                required
+                                placeholder="e.g. 8000.00"
+                            />
+                            <p className="field-hint">Enter what the whole batch cost. Selling price is set when you record a sale.</p>
                         </div>
 
                         <button type="submit" className="btn btn-primary" style={{ width: '100%', marginTop: '0.5rem' }} disabled={adding}>
@@ -93,7 +109,7 @@ export default function StockPage() {
                 </WorkspacePanel>
             </div>
 
-            <WorkspaceSection title="Batch history" description="Stock movement, profitability and batch controls." aside={<span className="work-pill">{batches.length} batches</span>} />
+            <WorkspaceSection title="Batch history" description="Revenue and realized profit include posted sales only; unsold stock remains inventory." aside={<span className="work-pill">{batches.length} batches</span>} />
             <div className="table-luxury-container">
                 <table className="table-luxury">
                     <thead>
@@ -101,8 +117,8 @@ export default function StockPage() {
                             <th>Date Created</th>
                             <th>Ingested (g)</th>
                             <th>Remaining (g)</th>
-                            <th>Cost / Revenue</th>
-                            <th>Net Profit</th>
+                            <th>Batch cost / Revenue</th>
+                            <th>Realized Profit</th>
                             <th>Fulfillment Status</th>
                             <th style={{ textAlign: 'right' }}>Actions</th>
                         </tr>
@@ -113,7 +129,7 @@ export default function StockPage() {
                             const date = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
                             const time = d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
                             const isExhausted = b.remaining_grams === 0;
-                            const profit = (b.total_revenue || 0) - (b.total_cost || 0);
+                            const profit = Math.round(((b.total_revenue || 0) - (b.realized_cost || 0)) * 100) / 100;
 
                             return (
                                 <tr key={b.id} style={{ opacity: isExhausted ? 0.65 : 1 }}>
@@ -128,11 +144,11 @@ export default function StockPage() {
                                         {b.remaining_grams.toFixed(2)}g
                                     </td>
                                     <td>
-                                        <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Cost: ₹{(b.total_cost || 0).toFixed(2)}</div>
-                                        <div style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-primary)' }}>Rev: ₹{(b.total_revenue || 0).toFixed(2)}</div>
+                                        <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Batch cost: ₹{b.total_cost.toFixed(2)}</div>
+                                        <div style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-primary)' }}>Revenue: ₹{(b.total_revenue || 0).toFixed(2)}</div>
                                     </td>
-                                    <td style={{ fontFamily: 'monospace', fontWeight: 700, color: profit >= 0 ? 'var(--success)' : 'var(--danger)' }}>
-                                        {profit >= 0 ? '+' : '-'}₹{Math.abs(profit).toFixed(2)}
+                                    <td style={{ fontFamily: 'monospace', fontWeight: 700, color: profit > 0 ? 'var(--success)' : profit < 0 ? 'var(--danger)' : 'var(--text-secondary)' }}>
+                                        {profit > 0 ? '+' : profit < 0 ? '-' : ''}₹{Math.abs(profit).toFixed(2)}
                                     </td>
                                     <td>
                                         {isExhausted ? (
@@ -144,7 +160,7 @@ export default function StockPage() {
                                     <td style={{ textAlign: 'right' }}>
                                         <div style={{ display: 'flex', gap: '0.35rem', justifyContent: 'flex-end', alignItems: 'center' }}>
                                             {!isExhausted && <CloseBatchBtn id={b.id} />}
-                                            <EditBatchBtn batch={b} />
+                                            <EditBatchBtn batch={b} onUpdated={loadData} />
                                             {!isExhausted && b.grams === b.remaining_grams && (
                                                 <DeleteBatchBtn id={b.id} />
                                             )}

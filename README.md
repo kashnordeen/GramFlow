@@ -107,7 +107,6 @@ Important environment variables:
 - `REGISTRATION_CODE`: private initial-registration code
 - `ALLOWED_EMAIL_DOMAIN`: organization email domain accepted by authentication
 - `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_REDIRECT_URI`: optional Google OAuth web-client credentials and exact callback URL
-- `COST_PRICE_PER_GRAM`: default cost for new stock batches
 - `SEED_ADMIN_*`: optional development administrator credentials used by the seed script
 - `DEMO_SEED_PASSWORD`: shared local-only password used by the optional demo fixtures
 
@@ -169,11 +168,13 @@ The importer preserves IDs, loads tables in foreign-key order, advances identity
 - Accounting: `accounts`, `journal_entries`, `journal_lines`
 - Compliance: `audit_logs`
 
-Money uses `NUMERIC(14,2)` and quantities use `NUMERIC(14,3)`. Foreign keys, uniqueness, non-negative checks, sale arithmetic checks, partial FIFO indexes, and frequently used relationship/timestamp indexes are enforced in PostgreSQL.
+Most money values use `NUMERIC(14,2)`; total batch cost uses `NUMERIC(18,2)`, FIFO unit cost uses `NUMERIC(18,6)`, and quantities use `NUMERIC(14,3)`. Foreign keys, uniqueness, non-negative checks, sale arithmetic checks, partial FIFO indexes, and frequently used relationship/timestamp indexes are enforced in PostgreSQL.
 
 ## FIFO and concurrency
 
 Eligible batches are selected by `created_at, id` and locked with `SELECT … FOR UPDATE`. Allocation may consume part of a batch and continue through later batches. Updates include a non-negative guard. The sale uses a serializable transaction; concurrent requests cannot consume the same available quantity. Any insufficient-stock, accounting, or audit failure rolls the entire sale back.
+
+Stock receipts record the cost of the whole batch. FIFO derives the per-gram cost internally for each sale allocation; batch revenue uses the final selling amount after discounts, and realized profit excludes unsold stock and reversed sales.
 
 `sale_batch_assignments` stores the exact quantity and historical unit cost from every consumed batch. Reversals restore those exact batches and retain the original sale and allocation records.
 

@@ -36,8 +36,8 @@ try {
   const alice = (await client.query("INSERT INTO customers(name,phone,old_loan) VALUES('Alice Demo','555-0101',150) RETURNING id")).rows[0].id;
   await client.query("INSERT INTO customers(name,phone) VALUES('Bob Demo','555-0102'),('Charlie Demo','555-0103')");
   await post("DEMO-OPEN-AR", "OPENING_RECEIVABLE", "customer", alice, "Demo opening receivable", [{ code: "1100", debit: 150 }, { code: "3000", credit: 150 }]);
-  const batch1 = (await client.query("INSERT INTO stock_batches(grams,price_per_gram,remaining_grams,created_at) VALUES(10,300,6,now()-interval '2 days') RETURNING id")).rows[0].id;
-  const batch2 = (await client.query("INSERT INTO stock_batches(grams,price_per_gram,remaining_grams,created_at) VALUES(8,320,8,now()-interval '1 day') RETURNING id")).rows[0].id;
+  const batch1 = (await client.query("INSERT INTO stock_batches(grams,total_cost,remaining_grams,created_at) VALUES(10,3000,6,now()-interval '2 days') RETURNING id")).rows[0].id;
+  const batch2 = (await client.query("INSERT INTO stock_batches(grams,total_cost,remaining_grams,created_at) VALUES(8,2560,8,now()-interval '1 day') RETURNING id")).rows[0].id;
   await post("DEMO-STOCK-1", "STOCK_RECEIPT", "stock_batch", batch1, "Demo stock receipt", [{ code: "1200", debit: 3000 }, { code: "3000", credit: 3000 }]);
   await post("DEMO-STOCK-2", "STOCK_RECEIPT", "stock_batch", batch2, "Demo stock receipt", [{ code: "1200", debit: 2560 }, { code: "3000", credit: 2560 }]);
   const sale = (await client.query(`INSERT INTO sales(customer_id,grams_sold,gross_amount,discount,final_amount,amount_received,balance,comments,created_by)

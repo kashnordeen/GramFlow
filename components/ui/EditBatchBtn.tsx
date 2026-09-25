@@ -8,13 +8,13 @@ import { showToast } from "@/components/ToastProvider";
 import { StockBatch } from "@/types";
 import { useAccess } from "@/components/AccessProvider";
 
-export function EditBatchBtn({ batch }: { batch: StockBatch }) {
+export function EditBatchBtn({ batch, onUpdated }: { batch: StockBatch; onUpdated?: () => void }) {
     const { hasPermission } = useAccess();
     const [isOpen, setIsOpen] = useState(false);
     const [loading, setLoading] = useState(false);
 
     const [grams, setGrams] = useState(batch.grams?.toString() || "");
-    const [price, setPrice] = useState(batch.price_per_gram?.toString() || "");
+    const [cost, setCost] = useState(batch.total_cost?.toString() || "");
 
     const handleSave = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -22,7 +22,7 @@ export function EditBatchBtn({ batch }: { batch: StockBatch }) {
         setLoading(true);
         const fd = new FormData();
         fd.append("grams", grams);
-        fd.append("price_per_gram", price);
+        fd.append("total_cost", cost);
 
         const res = await updateStockBatch(batch.id, fd);
 
@@ -31,6 +31,7 @@ export function EditBatchBtn({ batch }: { batch: StockBatch }) {
         } else {
             showToast("Stock batch parameters updated successfully.", "success");
             setIsOpen(false);
+            onUpdated?.();
         }
         setLoading(false);
     };
@@ -42,7 +43,7 @@ export function EditBatchBtn({ batch }: { batch: StockBatch }) {
         <>
             <button
                 type="button"
-                onClick={() => setIsOpen(true)}
+                onClick={() => { setGrams(batch.grams.toString()); setCost(batch.total_cost.toString()); setIsOpen(true); }}
                 title="Edit Batch Details"
                 aria-label={`Edit stock batch ${batch.id}`}
                 className="action-icon-btn"
@@ -81,8 +82,8 @@ export function EditBatchBtn({ batch }: { batch: StockBatch }) {
                                 <input id={`batch-total-${batch.id}`} autoFocus type="number" step="0.01" min={soldAmount > 0 ? soldAmount : 0.01} className="input-field" value={grams} onChange={e => setGrams(e.target.value)} required />
                             </div>
                             <div className="form-group">
-                                <label htmlFor={`batch-cost-${batch.id}`}>Cost rate per gram (₹)</label>
-                                <input id={`batch-cost-${batch.id}`} type="number" step="0.01" className="input-field" value={price} onChange={e => setPrice(e.target.value)} required />
+                                <label htmlFor={`batch-cost-${batch.id}`}>Total batch cost (₹)</label>
+                                <input id={`batch-cost-${batch.id}`} type="number" step="0.01" min="0" className="input-field" value={cost} onChange={e => setCost(e.target.value)} required />
                             </div>
 
                             <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1.75rem' }}>

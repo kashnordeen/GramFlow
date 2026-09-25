@@ -16,7 +16,7 @@ export async function allocateFifo(client: PoolClient, gramsRequested: number, r
     const updated = await client.query(
       `UPDATE stock_batches SET remaining_grams=remaining_grams-$1,updated_at=now(),status=CASE WHEN remaining_grams-$1=0 THEN 'CLOSED' ELSE status END WHERE id=$2 AND remaining_grams>=$1 RETURNING id`, [grams, batch.id]);
     if (!updated.rows[0]) throw new Error("Inventory changed while allocating stock; retry the sale.");
-    allocations.push({ batchId: batch.id, grams, unitCost: batch.price_per_gram });
+    allocations.push({ batchId: batch.id, grams, unitCost: Math.round((batch.total_cost / batch.grams) * 1_000_000) / 1_000_000 });
     remaining = Math.round((remaining - grams) * 1000) / 1000;
   }
   if (remaining > 0) throw new Error(`Insufficient stock. Missing ${remaining.toFixed(3)}g.`);

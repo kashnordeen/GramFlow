@@ -18,7 +18,7 @@ export async function GET(_req: NextRequest) {
 
         // 2. Fetch Active Inventory
         const stockBatches = (await query<StockBatch>(`
-            SELECT id, grams, price_per_gram, remaining_grams, created_at
+            SELECT id, grams, total_cost, remaining_grams, created_at
             FROM stock_batches 
             WHERE remaining_grams > 0 
             ORDER BY created_at ASC
@@ -182,7 +182,7 @@ export async function GET(_req: NextRequest) {
                             <td style="color:#666">${new Date(b.created_at).toLocaleDateString()}</td>
                             <td><strong>Batch #${b.id}</strong> (Original: ${b.grams.toFixed(2)}g)</td>
                             <td class="text-right amount">${b.remaining_grams.toFixed(2)}g</td>
-                            <td class="text-right amount">₹${b.price_per_gram.toFixed(0)}/g</td>
+                            <td class="text-right amount">₹${b.total_cost.toFixed(2)}</td>
                         </tr>
                     `).join('')}
                 </tbody>

@@ -26,9 +26,9 @@ export interface Customer {
 export interface StockBatch {
     id: number;
     grams: number;
-    price_per_gram: number;
+    total_cost: number;
     remaining_grams: number;
-    total_cost?: number;
+    realized_cost?: number;
     total_revenue?: number;
     created_at: string;
 }

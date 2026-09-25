@@ -2,6 +2,13 @@
 
 All notable changes to GramFlow are documented here.
 
+## [2.1.1] - 2026-09-26
+
+### Changed
+
+- Replaced the project README with a complete product, architecture, setup, operations, security, testing, deployment, and troubleshooting guide.
+- Added an animated, reduced-motion-aware dashboard tour built from the shipped GramFlow interface.
+
 ## [2.1.0] - 2026-09-25
 
 ### Added

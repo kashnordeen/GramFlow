@@ -308,7 +308,7 @@ The test suite covers accounting balance checks, persisted authorization, dashbo
 
 GitHub Actions runs migrations, idempotent seeds, linting, type checking, the complete PostgreSQL suite, a production build, and a high-severity dependency audit on every pull request and push to `main`.
 
-## Production deployment
+## Production deployment.
 
 1. Provision PostgreSQL and a least-privilege application role.
 2. Store database credentials, `JWT_SECRET`, registration code, and optional OAuth credentials in a managed secret store.

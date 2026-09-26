@@ -4,7 +4,8 @@ import pg from "pg";
 import path from "node:path";
 
 if (!process.env.DATABASE_URL) throw new Error("DATABASE_URL is required");
-const sqlitePath = path.resolve(process.env.SQLITE_PATH || "inventory.db");
+if (!process.argv[2]) throw new Error("Usage: npm run db:import-sqlite -- <path-to-sqlite-file>");
+const sqlitePath = path.resolve(process.argv[2]);
 const source = new DatabaseSync(sqlitePath, { readOnly: true });
 const target = new pg.Client({ connectionString: process.env.DATABASE_URL, ssl: process.env.DATABASE_SSL === "true" ? { rejectUnauthorized: false } : undefined });
 const tables = ["users", "customers", "stock_batches", "sales", "sale_batch_assignments", "payments", "settings"];

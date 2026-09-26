@@ -186,7 +186,6 @@ The first account becomes `ADMIN`. The bootstrap route closes immediately afterw
 | `SEED_ADMIN_PASSWORD` | No | Password for the optional development administrator. |
 | `SEED_ADMIN_NAME` | No | Display name for the optional development administrator. |
 | `DEMO_SEED_PASSWORD` | No | Enables disposable demonstration fixtures. Never use in production. |
-| `SQLITE_PATH` | For import only | Path read by the non-destructive SQLite importer. |
 
 Never commit `.env`. The tracked `.env.example` contains placeholders and local development defaults only.
 
@@ -271,9 +270,8 @@ The importer opens the source database in read-only mode and never changes or de
 1. Back up the SQLite database and any `-wal` file.
 2. Stop the older application.
 3. Initialize a fresh PostgreSQL target with `npm run db:setup`.
-4. Set `SQLITE_PATH` to the source file.
-5. Run `npm run db:import-sqlite`.
-6. Review the printed source and target counts before starting GramFlow.
+4. Run `npm run db:import-sqlite -- <path-to-sqlite-file>`.
+5. Review the printed source and target counts before starting GramFlow.
 
 The importer preserves IDs, loads tables in foreign-key order, advances identity sequences, checks relationships, and validates row counts. `ON CONFLICT DO NOTHING` makes a retry safe; it is not intended to merge two live installations.
 

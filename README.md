@@ -119,8 +119,6 @@ sequenceDiagram
 - npm
 - PostgreSQL 15+ or Docker Desktop
 
-Node.js 24 is required for the built-in SQLite importer.
-
 ### 1. Install and configure
 
 ```powershell
@@ -263,18 +261,6 @@ npm run db:seed:demo
 
 The command creates administrator, manager, inventory, and accountant users plus sample customers, stock, a credit sale, payment, journals, and audit events. It never runs during normal setup. Follow [`DEMO.md`](DEMO.md) for a five-minute walkthrough.
 
-## Importing an older SQLite database
-
-The importer opens the source database in read-only mode and never changes or deletes it.
-
-1. Back up the SQLite database and any `-wal` file.
-2. Stop the older application.
-3. Initialize a fresh PostgreSQL target with `npm run db:setup`.
-4. Run `npm run db:import-sqlite -- <path-to-sqlite-file>`.
-5. Review the printed source and target counts before starting GramFlow.
-
-The importer preserves IDs, loads tables in foreign-key order, advances identity sequences, checks relationships, and validates row counts. `ON CONFLICT DO NOTHING` makes a retry safe; it is not intended to merge two live installations.
-
 ## Commands
 
 | Command | Description |
@@ -290,7 +276,6 @@ The importer preserves IDs, loads tables in foreign-key order, advances identity
 | `npm run db:seed` | Seed roles, permissions, accounts, and optional development admin. |
 | `npm run db:setup` | Run migrations and the standard seed. |
 | `npm run db:seed:demo` | Add optional local demonstration fixtures. |
-| `npm run db:import-sqlite` | Import a legacy SQLite database into PostgreSQL. |
 
 ## Verification
 
@@ -345,7 +330,7 @@ db/seed.sql          Default roles, permissions, and accounting configuration
 lib/actions/         Authorized business mutations
 lib/auth/            Session, authorization, policy, and Google OAuth logic
 lib/                 FIFO, accounting, dashboard, audit, reports, and database access
-scripts/             Migration, seed, demo, and SQLite import tools
+scripts/             PostgreSQL migration, seed, and demo tools
 tests/               Unit, security, and PostgreSQL integration tests
 public/              Brand and application assets
 ```

@@ -1,377 +1,41 @@
-<div align="center">
-  <img src="public/brand-mark.svg" alt="GramFlow" width="76" />
-  <h1>GramFlow</h1>
-  <p><strong>The operations workspace for inventory, sales, receivables, and accounting.</strong></p>
-  <p>Know what stock you have, what every sale earned, what customers owe, and what needs attention next.</p>
+# GramFlow
 
-  <p>
-    <a href="https://github.com/kashnordeen/GramFlow/releases/latest"><img alt="Latest release" src="https://img.shields.io/github/v/release/kashnordeen/GramFlow?style=flat-square&color=B9F52A&labelColor=111B17" /></a>
-    <a href="https://github.com/kashnordeen/GramFlow/actions/workflows/ci.yml"><img alt="CI status" src="https://img.shields.io/github/actions/workflow/status/kashnordeen/GramFlow/ci.yml?branch=main&style=flat-square&label=CI" /></a>
-    <img alt="Next.js 16" src="https://img.shields.io/badge/Next.js-16-000000?style=flat-square&logo=nextdotjs" />
-    <img alt="PostgreSQL 15+" src="https://img.shields.io/badge/PostgreSQL-15%2B-4169E1?style=flat-square&logo=postgresql&logoColor=white" />
-    <img alt="TypeScript" src="https://img.shields.io/badge/TypeScript-5-3178C6?style=flat-square&logo=typescript&logoColor=white" />
-  </p>
-</div>
+GramFlow is a multi-business inventory, sales, and receivables app built with Next.js and PostgreSQL. Each business has its own stock, customers, gram rates, team, and accounting records. Sales allocate stock using FIFO and update the ledger and audit history in the same database transaction.
 
----
+## Run locally
 
-![Animated GramFlow dashboard tour](docs/media/gramflow-ui-tour.svg)
-
-GramFlow is a self-hosted business operations application for teams that buy stock in batches, sell by weight, manage customer balances, and need reliable financial records. It combines a responsive command-center interface with PostgreSQL-backed FIFO allocation, double-entry accounting, persisted permissions, and immutable audit history.
-
-Everything that matters to a sale—stock consumption, customer receivables, journal entries, and the audit event—is committed in one database transaction. If any part fails, the whole operation rolls back.
-
-## What GramFlow gives you
-
-| Area | Capability |
-| --- | --- |
-| **Operations dashboard** | Live inventory, sales, realized profit, receivables, stock health, recent activity, and prioritized next actions. |
-| **FIFO inventory** | Concurrency-safe allocation from the oldest eligible batch with exact batch lineage and reversal support. |
-| **Sales** | Cash and credit sales, discounts, receipt generation, editing with financial adjustments, and full reversals. |
-| **Customers** | Customer balances, payment history, outstanding receivables, and downloadable account reports. |
-| **Accounting** | Balanced, immutable double-entry journals for sales, inventory cost, payments, adjustments, and reversals. |
-| **Access control** | Database-backed roles and permissions enforced again on every protected server operation. |
-| **Authentication** | Google-only business signup, Google owner sign-in, and internal worker IDs with passwords. OAuth uses authorization code, PKCE, state, and nonce validation. |
-| **Auditability** | Append-only audit records written inside the same transaction as the business change. |
-| **Privacy controls** | One-click masking of sensitive financial values throughout the workspace. |
-| **Responsive workflow** | Desktop command palette, compact navigation, mobile navigation, light/dark themes, and accessible states. |
-
-## Product tour
-
-### One dashboard, truthful signals
-
-The home workspace summarizes current stock, posted sales, gross profit, receivables, recent activity, and setup health. Trend calculations use posted transactions only. Realized margin includes the historical FIFO cost recorded at sale time; unsold inventory and reversed sales do not inflate profit.
-
-### Stock received by batch, sold by FIFO
-
-Operators record the weight and total cost of a stock receipt. GramFlow derives the precise unit cost internally, locks eligible PostgreSQL rows with `SELECT … FOR UPDATE`, consumes the oldest batch first, and stores the exact allocation used by every sale.
-
-### Receivables stay connected to sales
-
-Each sale records the amount received and the remaining balance. Later customer payments reduce receivables and post the corresponding accounting entry. Customer reports show the history without exposing authentication data.
-
-### Accounting follows the operation
-
-A posted sale can produce both revenue and cost-of-goods-sold journals. Journals must balance before insertion and are checked again by a deferred PostgreSQL constraint trigger at commit. Posted financial history cannot be edited or deleted; corrections use linked adjustment or reversal entries.
-
-## Architecture
-
-```mermaid
-flowchart LR
-    Browser[Next.js UI] --> Boundary[Server actions and API routes]
-    Boundary --> Session[Session validation]
-    Session --> RBAC[Role and permission check]
-    RBAC --> Tx[PostgreSQL transaction]
-
-    Tx --> FIFO[FIFO allocation]
-    Tx --> Sales[Sale and receivable]
-    Tx --> Ledger[Double-entry journal]
-    Tx --> Audit[Immutable audit event]
-
-    FIFO --> DB[(PostgreSQL)]
-    Sales --> DB
-    Ledger --> DB
-    Audit --> DB
-
-    DB --> Commit{All valid?}
-    Commit -- Yes --> Done[Commit once]
-    Commit -- No --> Rollback[Roll back everything]
-```
-
-The browser never connects directly to PostgreSQL. Client-side permission checks improve the interface, but they are not trusted as a security boundary. Server actions and route handlers reload the current user, roles, and permissions before protected work begins.
-
-### Sale transaction
-
-```mermaid
-sequenceDiagram
-    participant U as Operator
-    participant A as GramFlow server
-    participant P as PostgreSQL
-
-    U->>A: Submit sale
-    A->>A: Validate input and permission
-    A->>P: Begin serializable transaction
-    A->>P: Lock and allocate FIFO batches
-    A->>P: Insert sale and customer balance
-    A->>P: Post revenue and inventory journals
-    A->>P: Write audit event
-    P-->>A: Validate constraints
-    A->>P: Commit
-    A-->>U: Return completed sale
-```
-
-## Technology
-
-- Next.js 16 App Router and React 19
-- TypeScript 5
-- PostgreSQL 15 or newer
-- `pg` connection pooling and explicit SQL transactions
-- `jose` for signed sessions and Google identity verification
-- `bcryptjs` with cost 12 for password hashing
-- jsPDF for receipts and customer reports
-- Node's built-in test runner through `tsx`
-
-## Quick start
-
-### Requirements
-
-- Node.js 24 LTS
-- npm
-- PostgreSQL 15+ or Docker Desktop
-
-### 1. Install and configure
+You need Node.js 24, npm, and PostgreSQL. Docker Compose can provide the local database.
 
 ```powershell
 git clone https://github.com/kashnordeen/GramFlow.git
 Set-Location GramFlow
-npm install
+npm ci
 Copy-Item .env.example .env
-```
-
-### 2. Start PostgreSQL
-
-The quickest local option is Docker:
-
-```powershell
 docker compose up -d
 ```
 
-This starts PostgreSQL at `localhost:5432` with the development credentials already shown in `.env.example`.
-
-If you prefer an existing PostgreSQL server, create application and test databases owned by a non-superuser account, then update `DATABASE_URL` and `TEST_DATABASE_URL`.
-
-### 3. Initialize the database
+The sample `DATABASE_URL` matches the Docker database. In `.env`, replace `JWT_SECRET` with a random value of at least 32 characters and set `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, and `GOOGLE_REDIRECT_URI`. Create a Google OAuth web client with `http://localhost:3000` as an authorized origin and `http://localhost:3000/api/auth/google/callback` as an authorized redirect URI. The sample `ALLOWED_EMAIL_DOMAIN=gmail.com` permits verified Gmail accounts.
 
 ```powershell
 npm run db:setup
-```
-
-The migration runner applies every unapplied file in `db/migrations`, stores its SHA-256 checksum, and refuses to continue if a previously applied migration has been modified. The seed is idempotent and creates the default permissions, roles, and chart of accounts.
-
-### 4. Run GramFlow
-
-```powershell
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000).
+Open [http://localhost:3000/signup](http://localhost:3000/signup) to create a business with Google. The owner names the business and sets its starting gram rate (initially ₹0), then can add custom weight ranges and workers. Worker login IDs are internal identifiers, not email inboxes.
 
-### 5. Create a business
-
-Configure Google OAuth, then open `/signup` and continue with a verified Google account under `ALLOWED_EMAIL_DOMAIN` (for this deployment, `gmail.com`). Name the business and set its starting gram rate. New rates start at `0`; custom weight ranges are managed in **Settings**. Every Google signup creates a separate business workspace, and the same owner can create another business later.
-
-From **Roles & permissions**, the owner creates worker login names and temporary passwords. A name such as `rita` becomes an internal ID such as `rita@business-name-2.gramflow`; it is **not** a real email inbox. Workers use the password sign-in form, while business owners use Google.
-
-## Configuration
-
-| Variable | Required | Purpose |
-| --- | --- | --- |
-| `DATABASE_URL` | Yes | PostgreSQL connection string for the application database. |
-| `TEST_DATABASE_URL` | For integration tests | Disposable PostgreSQL database; the suite creates an isolated schema inside it. |
-| `DATABASE_SSL` | No | Set to `true` when the database host requires TLS. |
-| `DB_POOL_MAX` | No | Maximum database connections per application instance. Defaults to `1`. |
-| `JWT_SECRET` | Yes | Session and OAuth-flow signing secret with at least 32 characters. |
-| `ALLOWED_EMAIL_DOMAIN` | Yes | Exact Google email domain allowed to create or sign in to a business; use `gmail.com` for consumer Gmail accounts. |
-| `GOOGLE_CLIENT_ID` | Yes for signup | Google OAuth web client ID. All three Google variables must be configured together. |
-| `GOOGLE_CLIENT_SECRET` | Yes for signup | Google OAuth web client secret. Keep it in a managed secret store in production. |
-| `GOOGLE_REDIRECT_URI` | Yes for signup | Exact callback URL ending in `/api/auth/google/callback`. HTTPS is required in production. |
-| `SEED_ADMIN_EMAIL` | No | Optional development administrator created by `db:seed`. |
-| `SEED_ADMIN_PASSWORD` | No | Password for the optional development administrator. |
-| `SEED_ADMIN_NAME` | No | Display name for the optional development administrator. |
-| `DEMO_SEED_PASSWORD` | No | Enables disposable demonstration fixtures. Never use in production. |
-
-Never commit `.env`. The tracked `.env.example` contains placeholders and local development defaults only.
-
-## Google sign-in and signup
-
-1. Create a Google OAuth **Web application** client.
-2. Add the application origin, such as `http://localhost:3000` during local development.
-3. Register the exact callback URI: `http://localhost:3000/api/auth/google/callback`.
-4. Set `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, and `GOOGLE_REDIRECT_URI`.
-5. Run `npm run db:migrate` and restart GramFlow.
-
-For Vercel, register `https://YOUR-VERCEL-DOMAIN.vercel.app/api/auth/google/callback` and use that exact HTTPS URL for `GOOGLE_REDIRECT_URI`.
-
-Google signup is open to verified accounts under `ALLOWED_EMAIL_DOMAIN` and creates a new private business. Google sign-in opens an existing business; existing password accounts can link a matching verified Google identity on first sign-in. Workers are created by a business administrator, not through public signup.
-
-The flow uses authorization code plus PKCE, a signed 10-minute flow cookie, state and nonce validation, verified Google signatures, strict issuer and audience checks, verified email, and—when using a custom domain—the matching Workspace hosted-domain claim.
-
-## Roles and permissions
-
-| Default role | Intended access |
-| --- | --- |
-| `ADMIN` | Every permission, user administration, settings, and exports. |
-| `MANAGER` | Sales, customers, inventory, pricing, and operational reporting. |
-| `INVENTORY_OPERATOR` | Inventory reading, receiving, and updating. |
-| `ACCOUNTANT` | Receivables, reports, journals, reversals, and audit history. |
-
-Permissions are stored in PostgreSQL and reloaded on each protected request. Deactivating an account or changing its password invalidates existing sessions through the session-version mechanism.
-
-## Inventory and costing
-
-Stock receipts store:
-
-- original quantity in grams
-- remaining quantity
-- total batch cost
-- creation time and status
-
-FIFO derives a six-decimal unit cost from the original batch total. Each sale allocation copies that historical unit cost into `sale_batch_assignments`, so later edits to the stock receipt cannot rewrite already-realized margin.
-
-Reversing a sale restores the exact source batches while retaining the original sale, allocations, and linked opposite journals.
-
-## Accounting model
-
-The default chart of accounts includes:
-
-| Code | Account | Type |
-| --- | --- | --- |
-| `1000` | Cash | Asset |
-| `1010` | Bank | Asset |
-| `1100` | Accounts Receivable | Asset |
-| `1200` | Inventory | Asset |
-| `3000` | Opening Balance Equity | Equity |
-| `4000` | Sales Revenue | Revenue |
-| `5000` | Cost of Goods Sold | Expense |
-| `5100` | Inventory Loss | Expense |
-
-For a ₹1,000 sale with ₹600 received and ₹350 of allocated inventory cost, GramFlow posts:
-
-```text
-Dr Cash                         ₹600
-Dr Accounts Receivable         ₹400
-    Cr Sales Revenue                 ₹1,000
-
-Dr Cost of Goods Sold          ₹350
-    Cr Inventory                      ₹350
-```
-
-A later ₹400 customer payment posts `Dr Cash / Cr Accounts Receivable`. Journal entries must contain at least two lines and equal debits and credits. PostgreSQL prevents updates, deletes, and truncation of posted financial history.
-
-## Demo data
-
-For a disposable local database, set `DEMO_SEED_PASSWORD` and run:
-
-```powershell
-npm run db:seed:demo
-```
-
-The command creates administrator, manager, inventory, and accountant users plus sample customers, stock, a credit sale, payment, journals, and audit events. It never runs during normal setup. Follow [`DEMO.md`](DEMO.md) for a five-minute walkthrough.
-
-## Commands
-
-| Command | Description |
-| --- | --- |
-| `npm run dev` | Start the development server on localhost. |
-| `npm run dev:network` | Start development mode on all network interfaces. |
-| `npm run build` | Create an optimized production build. |
-| `npm start` | Run the production build. |
-| `npm run lint` | Run ESLint. |
-| `npm run typecheck` | Run TypeScript without emitting files. |
-| `npm test` | Run unit, security, and PostgreSQL integration tests. |
-| `npm run db:migrate` | Apply verified migrations in filename order. |
-| `npm run db:seed` | Seed roles, permissions, accounts, and optional development admin. |
-| `npm run db:setup` | Run migrations and the standard seed. |
-| `npm run db:seed:demo` | Add optional local demonstration fixtures. |
-
-## Verification
+## Checks
 
 ```powershell
 npm run lint
 npm run typecheck
 npm test
 npm run build
-npm audit --audit-level=high
 ```
 
-The test suite covers accounting balance checks, persisted authorization, dashboard calculations, timestamp normalization, OAuth state and nonce validation, navigation filtering, FIFO allocation, insufficient-stock rollback, concurrent allocation, migration integrity, realized margin, immutable journals, immutable audit history, HTML escaping, email policy, password policy, and stock receipt validation.
+`npm test` includes PostgreSQL integration tests. Create the separate `gramflow_test` database named in `.env.example` (or point `TEST_DATABASE_URL` to another disposable database); never point it at production.
 
-GitHub Actions runs migrations, idempotent seeds, linting, type checking, the complete PostgreSQL suite, a production build, and a high-severity dependency audit on every pull request and push to `main`.
+## Deploy
 
-## Deploy with Vercel + Supabase
+The app runs on Vercel with a PostgreSQL database such as Supabase. Set `DATABASE_URL`, `JWT_SECRET`, `ALLOWED_EMAIL_DOMAIN`, and the three `GOOGLE_*` variables in Vercel. For Supabase, use its transaction-pooler URL for the app, with `DATABASE_SSL=true` and `DB_POOL_MAX=1`. Run `npm run db:setup` from a trusted environment using the direct database URL before the first deployment; do not run migrations or seeds in the Vercel build.
 
-1. Create a Supabase PostgreSQL project and keep its database password out of Git.
-2. In Supabase **Connect**, copy the shared transaction-pooler connection string for the Vercel `DATABASE_URL`. Set `DATABASE_SSL=true` and `DB_POOL_MAX=1` in Vercel.
-3. Add `JWT_SECRET`, `ALLOWED_EMAIL_DOMAIN`, and the three `GOOGLE_*` variables to the Vercel project.
-4. From a trusted administration environment, set `DATABASE_URL` to the Supabase direct connection string, set `DATABASE_SSL=true`, and run:
-
-   ```powershell
-   npm ci
-   npm run db:migrate
-   npm run db:seed
-   ```
-
-   Migrations are transactional and checksum-verified. `db:seed` idempotently creates required roles, permissions, and ledger accounts. Never run `db:seed:demo` against production, and do not add migration or seed commands to the Vercel build.
-5. Import the GitHub repository into Vercel. Keep the repository root, select **Next.js**, set **Install Command** to `npm ci`, set **Build Command** to `npm run build`, and leave **Output Directory** at the Next.js default.
-6. Register `https://YOUR-VERCEL-DOMAIN.vercel.app/api/auth/google/callback` in Google Cloud and set the same value as `GOOGLE_REDIRECT_URI`.
-7. Deploy, then confirm `/api/health` returns `{"status":"ok"}`, sign in, and open the dashboard or stock list as a safe read-only database check.
-
-No `vercel.json` is required for this layout. The application uses the Node.js runtime and the existing `pg` driver; its queries are unnamed, so they are compatible with Supabase transaction pooling.
-
-The admin-only `/api/backup` route creates a portable logical export without password hashes or authentication secrets. It is useful for portability, but it is not a replacement for operational `pg_dump` backups.
-
-### Rollback
-
-The business migration is forward-only. After `008_strict_business_rls.sql`, the pre-workspace app cannot read business data because it does not set a business context; do not roll back code alone. Restore a compatible app/database pair from a tested backup if a full rollback is required.
-
-## Security model
-
-- Passwords use bcrypt with cost 12.
-- Sessions are signed JWTs containing the user ID, session version, and selected business ID.
-- Business data is separated by PostgreSQL row-level security and cross-business foreign keys.
-- Session cookies are `httpOnly`, `SameSite=Lax`, and `Secure` in production.
-- Five failed password logins within 15 minutes lock the email for 15 minutes.
-- Every protected mutation checks the authenticated user's current database permissions.
-- SQL uses parameterized queries.
-- Sensitive operations write audit records inside their business transaction.
-- Audit rows and posted journals are protected against update, delete, and truncate.
-- Security headers include `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`, and a restrictive `Permissions-Policy`.
-- Production OAuth redirects must use HTTPS.
-
-## Repository map
-
-```text
-app/                 Next.js pages, layouts, server routes, and workspace styling
-components/          Shell, dashboard, authentication, and reusable UI components
-db/migrations/       Ordered PostgreSQL schema migrations
-db/seed.sql          Default roles, permissions, and accounting configuration
-lib/actions/         Authorized business mutations
-lib/auth/            Session, authorization, policy, and Google OAuth logic
-lib/                 FIFO, accounting, dashboard, audit, reports, and database access
-scripts/             PostgreSQL migration, seed, and demo tools
-tests/               Unit, security, and PostgreSQL integration tests
-public/              Brand and application assets
-```
-
-## Troubleshooting
-
-### The app cannot connect to PostgreSQL
-
-Confirm the database is running, the role can connect, and `DATABASE_URL` names the correct database. For Docker, check `docker compose ps` and wait until the health check is ready.
-
-### Integration tests are skipped
-
-Set `TEST_DATABASE_URL`. The connected role must be allowed to create and drop schemas. Never point the suite at a production database.
-
-### Google sign-in says it is not configured
-
-All three Google variables must be set. The configured redirect URI must exactly match the Google Cloud console entry and end with `/api/auth/google/callback`.
-
-### Google signup fails
-
-Confirm the Google OAuth callback URL exactly matches `GOOGLE_REDIRECT_URI` and `ALLOWED_EMAIL_DOMAIN` matches the account's verified domain. No registration code is required.
-
-### A migration checksum changed
-
-Never edit an applied migration. Restore the original file and add a new migration for the next schema change.
-
-## Release and upgrade notes
-
-See [`CHANGELOG.md`](CHANGELOG.md) for user-facing release history. When upgrading from `v2.0.0` or earlier to the `v2.1` line, run `npm run db:migrate` before starting the new application. Migrations add Google identity support and convert legacy per-gram stock costs into whole-batch totals while preserving economic value.
-
----
-
-<div align="center">
-  <strong>GramFlow</strong><br />
-  Inventory, receivables, and accounting—kept in one reliable flow.
-</div>
+Register the production URL ending in `/api/auth/google/callback` in Google Cloud and use that exact URL for `GOOGLE_REDIRECT_URI`. Keep credentials out of Git. On later schema upgrades, run `npm run db:migrate` before deploying code that depends on the new schema.

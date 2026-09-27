@@ -8,13 +8,13 @@ export async function proxy(request: NextRequest) {
   let isValid = false;
   if (authCookie?.value && process.env.JWT_SECRET && process.env.JWT_SECRET.length >= 32) {
     try {
-      await jwtVerify(authCookie.value, new TextEncoder().encode(process.env.JWT_SECRET), { issuer: "gramflow", audience: "gramflow-web" });
-      isValid = true;
+      const { payload } = await jwtVerify(authCookie.value, new TextEncoder().encode(process.env.JWT_SECRET), { issuer: "gramflow", audience: "gramflow-web" });
+      isValid = [Number(payload.sub), Number(payload.sv), Number(payload.bid)].every((value) => Number.isSafeInteger(value) && value > 0);
     } catch { isValid = false; }
   }
-  if (!isValid && !isAuthPage) {
-    const response = NextResponse.redirect(new URL("/login", request.url));
-    response.cookies.delete("gramflow_auth");
+  if (!isValid) {
+    const response = isAuthPage ? NextResponse.next() : NextResponse.redirect(new URL("/login", request.url));
+    if (authCookie) response.cookies.delete("gramflow_auth");
     return response;
   }
   if (isValid && request.nextUrl.pathname.startsWith("/login")) return NextResponse.redirect(new URL("/", request.url));

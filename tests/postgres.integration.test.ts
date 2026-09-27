@@ -27,6 +27,14 @@ test("PostgreSQL connects, migrations apply, and seed is deterministic", { skip:
   await admin!.query(await migration("005_total_batch_cost.sql"));
   const converted = await admin!.query<{ total_cost: number }>("SELECT total_cost FROM stock_batches WHERE id=$1", [legacyBatch.rows[0].id]);
   assert.equal(Number(converted.rows[0].total_cost), 8000);
+  await admin!.query(await migration("006_gramflow_app_rls.sql"));
+  const policies = await admin!.query<{ tablename: string; roles: string[]; qual: string; with_check: string }>(
+    "SELECT tablename,roles,qual,with_check FROM pg_policies WHERE schemaname=$1 AND policyname='gramflow_app_server_access' ORDER BY tablename",
+    [schema],
+  );
+  assert.equal(policies.rows.length, 16);
+  assert.ok(policies.rows.every((row) => row.roles.includes("public")));
+  assert.ok(policies.rows.every((row) => row.qual.includes("gramflow_app") && row.with_check.includes("gramflow_app")));
   await admin!.query(await readFile(path.join(process.cwd(), "db", "seed.sql"), "utf8"));
   await admin!.query(await readFile(path.join(process.cwd(), "db", "seed.sql"), "utf8"));
   const result = await admin!.query("SELECT count(*)::int AS count FROM roles");

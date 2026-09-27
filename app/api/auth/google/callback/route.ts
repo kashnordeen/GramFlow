@@ -3,6 +3,7 @@ import { createSession } from "@/lib/auth/session";
 import { exchangeGoogleCode, GOOGLE_FLOW_COOKIE, readGoogleFlow, verifyGoogleIdentity } from "@/lib/auth/google";
 import { withTransaction } from "@/lib/db";
 import { writeAuditLog } from "@/lib/audit";
+import { createBusinessForOwner } from "@/lib/business";
 
 export const runtime = "nodejs";
 
@@ -28,16 +29,22 @@ export async function GET(request: NextRequest) {
     const identity = await verifyGoogleIdentity(idToken, flow.nonce);
     const user = await withTransaction(async (client) => {
       if (flow.intent === "signup") {
-        await client.query("SELECT pg_advisory_xact_lock(hashtext('gramflow-bootstrap'))");
-        const count = await client.query<{ count: number }>("SELECT count(*)::int AS count FROM users");
-        if (count.rows[0].count > 0) throw new Error("BOOTSTRAP_CLOSED");
-        const inserted = await client.query<{ id: number; session_version: number }>(
-          "INSERT INTO users(email,name,password_hash,google_subject) VALUES($1,$2,NULL,$3) RETURNING id,session_version",
-          [identity.email, identity.name || "Admin", identity.subject]);
-        const current = inserted.rows[0];
-        await client.query("INSERT INTO user_roles(user_id,role_id) SELECT $1,id FROM roles WHERE name='ADMIN'", [current.id]);
-        await writeAuditLog(client, { userId: current.id, action: "user.create", entityType: "user", entityId: current.id, metadata: { email: identity.email, provider: "google", initialRole: "ADMIN" } });
-        return current;
+        const existing = await client.query<{ id: number; email: string; google_subject: string | null; session_version: number; is_active: boolean }>(
+          "SELECT id,email,google_subject,session_version,is_active FROM users WHERE google_subject=$1 OR email=$2 FOR UPDATE",
+          [identity.subject, identity.email]);
+        let current = existing.rows[0];
+        if (current && (!current.is_active || current.email !== identity.email || (current.google_subject && current.google_subject !== identity.subject))) throw new Error("ACCOUNT_NOT_FOUND");
+        if (!current) {
+          const inserted = await client.query<{ id: number; email: string; google_subject: string | null; session_version: number; is_active: boolean }>(
+            "INSERT INTO users(email,name,password_hash,google_subject) VALUES($1,$2,NULL,$3) RETURNING id,email,google_subject,session_version,is_active",
+            [identity.email, identity.name || "Administrator", identity.subject]);
+          current = inserted.rows[0];
+        } else if (!current.google_subject) {
+          await client.query("UPDATE users SET google_subject=$1,updated_at=now() WHERE id=$2", [identity.subject, current.id]);
+        }
+        const businessId = await createBusinessForOwner(client, current.id);
+        await writeAuditLog(client, { userId: current.id, action: "business.create", entityType: "business", entityId: businessId });
+        return { ...current, businessId, setupComplete: false };
       }
 
       const result = await client.query<{ id: number; email: string; google_subject: string | null; session_version: number; is_active: boolean }>(
@@ -47,13 +54,18 @@ export async function GET(request: NextRequest) {
       const current = result.rows[0];
       if (!current.is_active || current.email !== identity.email || (current.google_subject && current.google_subject !== identity.subject)) throw new Error("ACCOUNT_NOT_FOUND");
       if (!current.google_subject) await client.query("UPDATE users SET google_subject=$1,updated_at=now() WHERE id=$2", [identity.subject, current.id]);
+      const membership = await client.query<{ business_id: number; setup_complete: boolean }>(
+        "SELECT ur.business_id,b.setup_complete FROM user_roles ur JOIN businesses b ON b.id=ur.business_id WHERE ur.user_id=$1 AND ur.is_active ORDER BY ur.business_id DESC LIMIT 1",
+        [current.id]);
+      if (!membership.rows[0]) throw new Error("ACCOUNT_NOT_FOUND");
+      const businessId = membership.rows[0].business_id;
+      await client.query("SELECT set_config('app.business_id',$1,true)", [String(businessId)]);
       await writeAuditLog(client, { userId: current.id, action: "auth.login", entityType: "user", entityId: current.id, metadata: { provider: "google" } });
-      return current;
+      return { ...current, businessId, setupComplete: membership.rows[0].setup_complete };
     });
-    await createSession(user.id, user.session_version);
-    return finish(request, "/");
+    await createSession(user.id, user.session_version, user.businessId);
+    return finish(request, user.setupComplete ? "/" : "/setup");
   } catch (error) {
-    if (error instanceof Error && error.message === "BOOTSTRAP_CLOSED") return finish(request, "/signup?google_error=closed");
     if (error instanceof Error && error.message === "ACCOUNT_NOT_FOUND") return finish(request, "/login?google_error=account");
     if (error instanceof Error && error.message.startsWith("Use a verified")) return finish(request, `/${intent}?google_error=domain`);
     console.error("Google authentication failed:", error);

@@ -6,7 +6,8 @@ import { requirePermission } from "../auth/authorization";
 import { postJournal, reverseJournals, JournalLineInput } from "../accounting";
 import { writeAuditLog } from "../audit";
 import { allocateFifo } from "../inventory";
-import { Sale, SaleBatchAssignment, ActionResult, Settings } from "@/types";
+import { Sale, SaleBatchAssignment, ActionResult, RateRange } from "@/types";
+import { grossForGrams } from "@/lib/pricing";
 
 function refreshSaleViews() { for (const path of ["/", "/stock", "/customers", "/transactions", "/add-sale", "/accounting", "/audit"]) revalidatePath(path); }
 
@@ -23,17 +24,16 @@ export async function createSale(formData: FormData): Promise<ActionResult> {
   const discount = Number(formData.get("discount") || 0);
   const amountReceived = Number(formData.get("amount_received") || 0);
   const requestedBatchId = formData.get("batch_id") ? Number(formData.get("batch_id")) : null;
-  if (!Number.isInteger(customerId) || !Number.isFinite(gramsSold) || gramsSold <= 0 || discount < 0 || amountReceived < 0) return { error: "Invalid sale parameters" };
+  if (!Number.isInteger(customerId) || !Number.isFinite(gramsSold) || gramsSold <= 0 || !Number.isFinite(discount) || !Number.isFinite(amountReceived) || discount < 0 || amountReceived < 0) return { error: "Invalid sale parameters" };
   try {
     const actor = await requirePermission("sales.create");
     const saleId = await withTransaction(async (client) => {
       const customer = await client.query("SELECT id FROM customers WHERE id=$1 FOR UPDATE", [customerId]);
       if (!customer.rows[0]) throw new Error("Customer not found.");
-      const settingsResult = await client.query<Settings>("SELECT * FROM settings WHERE id=1");
-      const settings = settingsResult.rows[0] ?? { rate_per_gram: 1000, special_025_030: 250, special_050_060: 500 };
-      let grossAmount = Number(formData.get("gross_amount"));
-      if (!Number.isFinite(grossAmount)) grossAmount = gramsSold >= 0.25 && gramsSold <= 0.30 ? settings.special_025_030 : gramsSold >= 0.5 && gramsSold <= 0.6 ? settings.special_050_060 : gramsSold * settings.rate_per_gram;
-      grossAmount = Math.round(grossAmount * 100) / 100;
+      const settings = (await client.query<{ rate_per_gram: number }>("SELECT rate_per_gram FROM settings LIMIT 1")).rows[0];
+      if (!settings) throw new Error("Business rates are not configured.");
+      const ranges = (await client.query<RateRange>("SELECT min_grams,max_grams,amount FROM rate_ranges ORDER BY min_grams")).rows;
+      const grossAmount = grossForGrams(gramsSold, settings.rate_per_gram, ranges);
       const finalAmount = Math.round(Math.max(0, grossAmount - discount) * 100) / 100;
       if (discount > grossAmount || amountReceived > finalAmount) throw new Error("Discount or received amount exceeds the sale amount.");
       const balance = Math.round((finalAmount - amountReceived) * 100) / 100;

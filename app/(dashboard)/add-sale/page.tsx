@@ -12,6 +12,8 @@ import { PremiumCheckmark } from "@/components/ui/PremiumCheckmark";
 import { Customer } from "@/types";
 import { useAccess } from "@/components/AccessProvider";
 import { WorkspaceHeader, WorkspacePanel } from "@/components/ui/Workspace";
+import { grossForGrams } from "@/lib/pricing";
+import type { RateRange } from "@/types";
 
 export default function AddSalePage() {
     const { hasPermission } = useAccess();
@@ -28,26 +30,12 @@ export default function AddSalePage() {
     const [amountReceived, setAmountReceived] = useState("");
     const [comments, setComments] = useState("");
 
-    const [rateSettings, setRateSettings] = useState({ ratePerGram: 1000, special025: 250, special050: 500 });
-    const [activeRatePerGram, setActiveRatePerGram] = useState("");
-    const [activeSpecial025, setActiveSpecial025] = useState("");
-    const [activeSpecial050, setActiveSpecial050] = useState("");
+    const [rateSettings, setRateSettings] = useState<{ ratePerGram: number; ranges: RateRange[] }>({ ratePerGram: 0, ranges: [] });
 
     const numGrams = parseFloat(grams) || 0;
     const numDiscount = parseFloat(discount) || 0;
 
-    const rPerGram = parseFloat(activeRatePerGram) || rateSettings.ratePerGram;
-    const sp025 = parseFloat(activeSpecial025) || rateSettings.special025;
-    const sp050 = parseFloat(activeSpecial050) || rateSettings.special050;
-
-    let grossAmount = 0;
-    if (numGrams >= 0.25 && numGrams <= 0.30) {
-        grossAmount = sp025;
-    } else if (numGrams >= 0.50 && numGrams <= 0.60) {
-        grossAmount = sp050;
-    } else {
-        grossAmount = numGrams * rPerGram;
-    }
+    const grossAmount = grossForGrams(numGrams, rateSettings.ratePerGram, rateSettings.ranges);
     const finalAmount = Math.max(0, grossAmount - numDiscount);
     const balance = Math.max(0, finalAmount - (parseFloat(amountReceived) || 0));
 
@@ -58,19 +46,7 @@ export default function AddSalePage() {
             setTotalStock(typeof stockRes === 'number' ? stockRes : 0);
 
             if (settingsRes) {
-                setRateSettings({
-                    ratePerGram: settingsRes.rate_per_gram,
-                    special025: settingsRes.special_025_030,
-                    special050: settingsRes.special_050_060
-                });
-
-                const savedRate = localStorage.getItem("override_ratePerGram");
-                const saved025 = localStorage.getItem("override_special025");
-                const saved050 = localStorage.getItem("override_special050");
-
-                setActiveRatePerGram(savedRate !== null ? savedRate : settingsRes.rate_per_gram.toString());
-                setActiveSpecial025(saved025 !== null ? saved025 : settingsRes.special_025_030.toString());
-                setActiveSpecial050(saved050 !== null ? saved050 : settingsRes.special_050_060.toString());
+                setRateSettings({ ratePerGram: settingsRes.rate_per_gram, ranges: settingsRes.ranges });
             }
         } catch {
             showToast("Failed to load initial data", "error");
@@ -94,7 +70,6 @@ export default function AddSalePage() {
         formData.append("grams_sold", grams);
         formData.append("discount", discount);
         formData.append("amount_received", amountReceived);
-        formData.append("gross_amount", grossAmount.toString());
         if (comments) formData.append("comments", comments);
 
         const res = await createSale(formData);
@@ -159,44 +134,7 @@ export default function AddSalePage() {
                             <input id="sale-grams" type="number" step="0.01" min="0.01" max={totalStock} className="input-field" placeholder="0.30" value={grams} onChange={(e) => setGrams(e.target.value)} required />
                         </div>
 
-                        <details
-                            style={{
-                                marginBottom: '1.25rem',
-                                padding: '0.85rem 1rem',
-                                background: 'var(--bg-subtle)',
-                                border: '1px solid var(--border-subtle)',
-                                borderRadius: 'var(--radius-md)'
-                            }}
-                        >
-                            <summary style={{ cursor: 'pointer', fontWeight: 600, userSelect: 'none', color: 'var(--text-primary)', fontSize: '0.875rem' }}>
-                                Dynamic Rate Overrides (Optional)
-                            </summary>
-                            <div style={{ marginTop: '1rem', display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
-                                <div className="form-group" style={{ margin: 0 }}>
-                                <label htmlFor="sale-rate">Rate per gram (₹)</label>
-                                    <input id="sale-rate" type="number" step="0.01" className="input-field" value={activeRatePerGram} onChange={(e) => {
-                                        setActiveRatePerGram(e.target.value);
-                                        localStorage.setItem("override_ratePerGram", e.target.value);
-                                    }} />
-                                </div>
-                                <div className="rate-tier-grid">
-                                    <div className="form-group" style={{ margin: 0 }}>
-                                        <label htmlFor="sale-special-025">0.25g–0.30g bracket (₹)</label>
-                                        <input id="sale-special-025" type="number" step="0.01" className="input-field" value={activeSpecial025} onChange={(e) => {
-                                            setActiveSpecial025(e.target.value);
-                                            localStorage.setItem("override_special025", e.target.value);
-                                        }} />
-                                    </div>
-                                    <div className="form-group" style={{ margin: 0 }}>
-                                        <label htmlFor="sale-special-050">0.50g–0.60g bracket (₹)</label>
-                                        <input id="sale-special-050" type="number" step="0.01" className="input-field" value={activeSpecial050} onChange={(e) => {
-                                            setActiveSpecial050(e.target.value);
-                                            localStorage.setItem("override_special050", e.target.value);
-                                        }} />
-                                    </div>
-                                </div>
-                            </div>
-                        </details>
+                        <p className="field-hint">Using this business&apos;s gram rate and custom weight ranges. Owners can change them in Settings.</p>
 
                         <div className="form-group">
                             <label htmlFor="sale-discount">Discount (₹)</label>

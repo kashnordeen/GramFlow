@@ -12,6 +12,7 @@ import {
   isRouteActive,
 } from "@/components/shell/navigation";
 import styles from "@/components/shell/command.module.css";
+import type { BusinessChoice } from "@/lib/actions/business.actions";
 
 interface TopNavUser {
   email: string;
@@ -19,9 +20,11 @@ interface TopNavUser {
   permissions?: string[];
   roles?: string[];
   has_password?: boolean;
+  business_id: number;
+  business_name: string;
 }
 
-export function TopNav({ user }: { user: TopNavUser }) {
+export function TopNav({ user, businesses }: { user: TopNavUser; businesses: BusinessChoice[] }) {
   const pathname = usePathname();
   const permissions = user.permissions || [];
   const navigationItems = getAllowedNavigationItems(permissions);
@@ -43,7 +46,7 @@ export function TopNav({ user }: { user: TopNavUser }) {
           <span>
             <strong>{currentLabel}</strong>
             <span>
-              Live workspace · <time suppressHydrationWarning>{dateLabel}</time>
+              {user.business_name} · <time suppressHydrationWarning>{dateLabel}</time>
             </span>
           </span>
         </div>
@@ -64,7 +67,7 @@ export function TopNav({ user }: { user: TopNavUser }) {
               <span>Record sale</span>
             </Link>
           )}
-          <AccountMenu user={user} />
+          <AccountMenu user={user} businesses={businesses} />
         </div>
       </header>
 
@@ -72,11 +75,11 @@ export function TopNav({ user }: { user: TopNavUser }) {
         <Link href="/" className={styles.mobileBrand}>
           <Image src="/brand-mark.svg" alt="" width={36} height={36} priority />
           <span>
-            <strong>GramFlow</strong>
+            <strong>{user.business_name}</strong>
             <span>{currentLabel}</span>
           </span>
         </Link>
-        <div className={styles.actions}><ThemeToggle compact /><AccountMenu user={user} compact /></div>
+        <div className={styles.actions}><ThemeToggle compact /><AccountMenu user={user} businesses={businesses} compact /></div>
       </header>
     </>
   );

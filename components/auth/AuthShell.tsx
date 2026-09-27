@@ -11,9 +11,9 @@ export function AuthShell({ mode, title, description, children }: { mode: "login
       <div className="auth-orb" aria-hidden="true"><span className="orb-ring orb-ring-one" /><span className="orb-ring orb-ring-two" /><span className="orb-core"><span>GF</span></span></div>
       <div className="auth-story-foot"><span><Boxes size={16} aria-hidden="true" /> FIFO stock</span><span><ScanLine size={16} aria-hidden="true" /> Live ledger</span><span><Fingerprint size={16} aria-hidden="true" /> Access control</span></div>
     </section>
-    <section className="auth-workspace" aria-label={mode === "login" ? "Sign in" : "Create first account"}>
+    <section className="auth-workspace" aria-label={mode === "login" ? "Sign in" : "Create business"}>
       <div className="auth-top"><span className="auth-top-label">SECURE WORKSPACE <ArrowUpRight size={14} aria-hidden="true" /></span><ThemeToggle compact /></div>
-      <div className="auth-form-wrap"><div className="auth-mobile-brand"><Image src="/brand-mark.svg" width={34} height={34} alt="" /><strong>GramFlow</strong></div><span className="workspace-kicker">{mode === "login" ? "WELCOME BACK" : "INITIAL SETUP"}</span><h1>{title}</h1><p className="auth-description">{description}</p>{children}</div>
+      <div className="auth-form-wrap"><div className="auth-mobile-brand"><Image src="/brand-mark.svg" width={34} height={34} alt="" /><strong>GramFlow</strong></div><span className="workspace-kicker">{mode === "login" ? "WELCOME BACK" : "YOUR WORKSPACE"}</span><h1>{title}</h1><p className="auth-description">{description}</p>{children}</div>
       <div className="auth-bottom">Protected access · GramFlow inventory and receivables</div>
     </section>
   </main>;

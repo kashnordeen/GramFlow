@@ -14,4 +14,4 @@ INSERT INTO role_permissions SELECT r.id,p.id FROM roles r JOIN permissions p ON
 INSERT INTO role_permissions SELECT r.id,p.id FROM roles r JOIN permissions p ON p.name=ANY(ARRAY['sales.read','customers.read','payments.read','payments.create','reports.read','accounting.read','accounting.post','accounting.reverse','audit.read']) WHERE r.name='ACCOUNTANT' ON CONFLICT DO NOTHING;
 INSERT INTO accounts (account_code,account_name,account_type) VALUES ('1000','Cash','ASSET'),('1010','Bank','ASSET'),('1100','Accounts Receivable','ASSET'),
 ('1200','Inventory','ASSET'),('3000','Opening Balance Equity','EQUITY'),('4000','Sales Revenue','REVENUE'),('5000','Cost of Goods Sold','EXPENSE'),('5100','Inventory Loss','EXPENSE')
-ON CONFLICT (account_code) DO UPDATE SET account_name=EXCLUDED.account_name,account_type=EXCLUDED.account_type;
+ON CONFLICT (business_id,account_code) DO UPDATE SET account_name=EXCLUDED.account_name,account_type=EXCLUDED.account_type;

@@ -7,6 +7,7 @@ import pg from "pg";
 import { allocateFifo } from "../lib/inventory";
 import { loadDashboardMetrics } from "../lib/dashboard";
 import { loadStockBatches } from "../lib/stock";
+import { createBusinessForOwner } from "../lib/business";
 
 const url = process.env.TEST_DATABASE_URL;
 const schema = `gramflow_test_${Date.now()}_${Math.random().toString(16).slice(2)}`;
@@ -35,10 +36,35 @@ test("PostgreSQL connects, migrations apply, and seed is deterministic", { skip:
   assert.equal(policies.rows.length, 16);
   assert.ok(policies.rows.every((row) => row.roles.includes("public")));
   assert.ok(policies.rows.every((row) => row.qual.includes("gramflow_app") && row.with_check.includes("gramflow_app")));
+  await admin!.query(await migration("007_business_workspaces.sql"));
+  const scoped = await admin!.query<{ count: number }>(
+    "SELECT count(*)::int AS count FROM pg_policies WHERE schemaname=$1 AND policyname='gramflow_business_access'",
+    [schema],
+  );
+  assert.equal(scoped.rows[0].count, 11);
+  await admin!.query(await migration("008_strict_business_rls.sql"));
+  const strict = await admin!.query<{ count: number }>(
+    "SELECT count(*)::int AS count FROM pg_policies WHERE schemaname=$1 AND policyname='gramflow_business_access' AND qual NOT ILIKE '%COALESCE%'",
+    [schema]);
+  assert.equal(strict.rows[0].count, 11);
   await admin!.query(await readFile(path.join(process.cwd(), "db", "seed.sql"), "utf8"));
   await admin!.query(await readFile(path.join(process.cwd(), "db", "seed.sql"), "utf8"));
   const result = await admin!.query("SELECT count(*)::int AS count FROM roles");
   assert.equal(result.rows[0].count, 4);
+});
+
+test("new businesses start at zero and cross-business references are rejected", { skip: !url }, async () => {
+  const owner = (await admin!.query<{ id: number }>("INSERT INTO users(email,name,password_hash) VALUES('owner@gmail.com','Owner','hash') RETURNING id")).rows[0];
+  await admin!.query("BEGIN");
+  const businessId = await createBusinessForOwner(admin! as unknown as pg.PoolClient, owner.id);
+  await admin!.query("COMMIT");
+  const settings = (await admin!.query<{ rate_per_gram: number }>("SELECT rate_per_gram FROM settings WHERE business_id=$1", [businessId])).rows[0];
+  assert.equal(Number(settings.rate_per_gram), 0);
+  assert.equal((await admin!.query("SELECT count(*)::int AS count FROM accounts WHERE business_id=$1", [businessId])).rows[0].count, 8);
+  const customer = (await admin!.query<{ id: number }>("INSERT INTO customers(name,business_id) VALUES('First business',1) RETURNING id")).rows[0];
+  await assert.rejects(
+    () => admin!.query("INSERT INTO sales(customer_id,business_id,grams_sold,gross_amount,final_amount,amount_received,balance) VALUES($1,$2,1,0,0,0,0)", [customer.id, businessId]),
+    /foreign key/);
 });
 
 test("FIFO partially consumes oldest batch then continues", { skip: !url }, async () => {

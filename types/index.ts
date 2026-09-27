@@ -9,6 +9,10 @@ export interface SessionUser {
     id: number;
     email: string;
     name: string;
+    business_id: number;
+    business_name: string;
+    business_slug: string;
+    setup_complete: boolean;
     roles: string[];
     permissions: string[];
     has_password: boolean;
@@ -97,11 +101,15 @@ export interface Payment {
 }
 
 export interface Settings {
-    id?: number;
     rate_per_gram: number;
-    special_025_030: number;
-    special_050_060: number;
+    ranges: RateRange[];
     updated_at?: string;
+}
+
+export interface RateRange {
+    min_grams: number;
+    max_grams: number;
+    amount: number;
 }
 
 export interface TimelineItem {

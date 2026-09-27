@@ -1,6 +1,7 @@
 .env*
 !.env.example
 docs/ideas/
+graphify-out/
 supabase/.temp/
 coverage/
 out/

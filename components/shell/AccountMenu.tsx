@@ -1,25 +1,30 @@
 "use client";
 
 import Link from "next/link";
-import { Database, FileText, LogOut, Settings, UserCircle } from "lucide-react";
+import { Database, FileText, LogOut, Plus, Settings, UserCircle } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useRef, useState } from "react";
 import { logoutAction } from "@/lib/actions/auth.actions";
 import { EditProfileBtn } from "@/components/ui/EditProfileBtn";
 import styles from "./command.module.css";
+import { switchBusiness } from "@/lib/actions/business.actions";
+import type { BusinessChoice } from "@/lib/actions/business.actions";
 
 interface AccountMenuProps {
   compact?: boolean;
+  businesses: BusinessChoice[];
   user: {
     email: string;
     name: string;
     permissions?: string[];
     roles?: string[];
     has_password?: boolean;
+    business_id: number;
+    business_name: string;
   };
 }
 
-export function AccountMenu({ compact = false, user }: AccountMenuProps) {
+export function AccountMenu({ compact = false, user, businesses }: AccountMenuProps) {
   const [modalOpen, setModalOpen] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const detailsRef = useRef<HTMLDetailsElement>(null);
@@ -46,10 +51,21 @@ export function AccountMenu({ compact = false, user }: AccountMenuProps) {
         </summary>
         <div className={styles.accountMenu}>
           <div className={styles.accountIdentity}>
-            <span>Signed in as</span>
+            <span>{user.business_name}</span>
             <strong>{user.email}</strong>
             <small>{user.roles?.join(", ") || "No role assigned"}</small>
           </div>
+          {businesses.length > 1 && <div className={styles.accountIdentity}>
+            <label htmlFor={compact ? "business-mobile" : "business-desktop"}>Switch business</label>
+            <select id={compact ? "business-mobile" : "business-desktop"} className="input-field" value={user.business_id} onChange={async (event) => {
+              const result = await switchBusiness(Number(event.target.value));
+              if (result.error) { window.alert(result.error); return; }
+              closeMenu();
+              router.push(result.data?.setupComplete ? "/" : "/setup");
+              router.refresh();
+            }}>{businesses.map((business) => <option key={business.id} value={business.id}>{business.name}</option>)}</select>
+          </div>}
+          <Link href="/signup" onClick={closeMenu}><Plus aria-hidden="true" size={17} /> Create another business</Link>
           <button
             type="button"
             onClick={() => {
@@ -63,7 +79,7 @@ export function AccountMenu({ compact = false, user }: AccountMenuProps) {
           {user.permissions?.includes("settings.manage") && (
             <Link href="/settings" onClick={closeMenu}>
               <Settings aria-hidden="true" size={17} />
-              Global settings
+              Business settings
             </Link>
           )}
           {user.permissions?.includes("reports.read") && (

@@ -8,6 +8,7 @@ import { useRouter } from "next/navigation";
 import { useAccess } from "@/components/AccessProvider";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
 import { WorkspaceHeader, WorkspacePanel } from "@/components/ui/Workspace";
+import type { RateRange } from "@/types";
 
 export default function SettingsPage() {
     const { hasPermission } = useAccess();
@@ -16,16 +17,14 @@ export default function SettingsPage() {
     const [submitting, setSubmitting] = useState(false);
 
     const [ratePerGram, setRatePerGram] = useState("");
-    const [special025, setSpecial025] = useState("");
-    const [special050, setSpecial050] = useState("");
+    const [ranges, setRanges] = useState<RateRange[]>([]);
 
     useEffect(() => {
         async function load() {
             try {
                 const data = await getSettings();
                 setRatePerGram(data.rate_per_gram.toString());
-                setSpecial025(data.special_025_030.toString());
-                setSpecial050(data.special_050_060.toString());
+                setRanges(data.ranges);
             } catch {
                 showToast("Failed to load settings", "error");
             }
@@ -40,8 +39,7 @@ export default function SettingsPage() {
 
         const formData = new FormData();
         formData.append("rate_per_gram", ratePerGram);
-        formData.append("special_025_030", special025);
-        formData.append("special_050_060", special050);
+        formData.append("ranges", JSON.stringify(ranges));
 
         const res = await updateSettings(formData);
         setSubmitting(false);
@@ -49,7 +47,7 @@ export default function SettingsPage() {
         if (res?.error) {
             showToast(res.error, "error");
         } else {
-            showToast("Global pricing configuration updated successfully", "success");
+            showToast("Business rates saved", "success");
             router.refresh();
         }
     };
@@ -75,36 +73,19 @@ export default function SettingsPage() {
                             onChange={(e) => setRatePerGram(e.target.value)}
                             required
                         />
-                        <p className="field-hint">Applied when a sale falls outside the special weight brackets.</p>
+                        <p className="field-hint">Applied when a sale falls outside your custom weight ranges.</p>
                     </div>
 
-                    <div className="rate-tier-grid">
-                        <div className="form-group" style={{ margin: 0 }}>
-                            <label htmlFor="settings-025">0.25g–0.30g rate (₹)</label>
-                            <input
-                                id="settings-025"
-                                type="number"
-                                step="0.01"
-                                className="input-field"
-                                value={special025}
-                                onChange={(e) => setSpecial025(e.target.value)}
-                                required
-                            />
-                        </div>
-
-                        <div className="form-group" style={{ margin: 0 }}>
-                            <label htmlFor="settings-050">0.50g–0.60g rate (₹)</label>
-                            <input
-                                id="settings-050"
-                                type="number"
-                                step="0.01"
-                                className="input-field"
-                                value={special050}
-                                onChange={(e) => setSpecial050(e.target.value)}
-                                required
-                            />
-                        </div>
+                    <div className="form-group">
+                        <div className="flex-between"><strong>Custom weight ranges</strong><button type="button" className="btn btn-secondary" disabled={ranges.length >= 20} onClick={() => setRanges([...ranges, { min_grams: 0.25, max_grams: 0.30, amount: 0 }])}>Add range</button></div>
+                        <p className="field-hint">Example: 0.25–0.30g has a fixed price of ₹250. Ranges must not overlap.</p>
                     </div>
+                    {ranges.map((range, index) => <div className="rate-tier-grid" key={index} style={{ marginBottom: "1rem" }}>
+                        <div className="form-group"><label htmlFor={`range-min-${index}`}>From (g)</label><input id={`range-min-${index}`} className="input-field" type="number" min="0.001" step="0.001" value={range.min_grams} onChange={(event) => setRanges(ranges.map((item, i) => i === index ? { ...item, min_grams: Number(event.target.value) } : item))} required /></div>
+                        <div className="form-group"><label htmlFor={`range-max-${index}`}>To (g)</label><input id={`range-max-${index}`} className="input-field" type="number" min="0.001" step="0.001" value={range.max_grams} onChange={(event) => setRanges(ranges.map((item, i) => i === index ? { ...item, max_grams: Number(event.target.value) } : item))} required /></div>
+                        <div className="form-group"><label htmlFor={`range-amount-${index}`}>Fixed price (₹)</label><input id={`range-amount-${index}`} className="input-field" type="number" min="0" step="0.01" value={range.amount} onChange={(event) => setRanges(ranges.map((item, i) => i === index ? { ...item, amount: Number(event.target.value) } : item))} required /></div>
+                        <button type="button" className="btn btn-secondary" onClick={() => setRanges(ranges.filter((_, i) => i !== index))} aria-label={`Remove range ${index + 1}`}>Remove</button>
+                    </div>)}
 
                     <button
                         type="submit"
@@ -122,7 +103,7 @@ export default function SettingsPage() {
                     <ThemeToggle />
                 </WorkspacePanel>
                 <WorkspacePanel icon={<ShieldCheck size={20} />} title="Data integrity" description="Pricing changes do not rewrite past sales.">
-                    <ul className="info-list"><li><ShieldCheck size={17} aria-hidden="true" /> Rate overrides on the sale page stay local to your browser.</li><li><ShieldCheck size={17} aria-hidden="true" /> Posted transactions retain their original values.</li></ul>
+                    <ul className="info-list"><li><ShieldCheck size={17} aria-hidden="true" /> Rates belong only to this business.</li><li><ShieldCheck size={17} aria-hidden="true" /> Posted transactions retain their original values.</li></ul>
                 </WorkspacePanel>
             </div>
             </div>

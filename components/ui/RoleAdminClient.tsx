@@ -6,17 +6,17 @@ import { ShieldCheck, UserPlus, UsersRound } from "lucide-react";
 import { AccessRole, AccessUser, assignUserRole, createUserAction, setUserActive } from "@/lib/actions/admin.actions";
 import { WorkspacePanel, WorkspaceSection } from "@/components/ui/Workspace";
 
-export function RoleAdminClient({ users, roles }: { users: AccessUser[]; roles: AccessRole[] }) {
+export function RoleAdminClient({ users, roles, businessSlug }: { users: AccessUser[]; roles: AccessRole[]; businessSlug: string }) {
   const router = useRouter();
   const [message, setMessage] = useState<{ kind: "error" | "success"; text: string } | null>(null);
   const [busy, setBusy] = useState(false);
 
-  async function run(operation: () => Promise<{ error?: string; success?: boolean }>) {
+  async function run(operation: () => Promise<{ error?: string; success?: boolean; data?: unknown }>) {
     setBusy(true);
     setMessage(null);
     try {
       const result = await operation();
-      setMessage(result.error ? { kind: "error", text: result.error } : { kind: "success", text: "Access settings updated." });
+      setMessage(result.error ? { kind: "error", text: result.error } : { kind: "success", text: typeof result.data === "string" ? `Worker created. Login ID: ${result.data}. Share this ID and the temporary password privately.` : "Access settings updated." });
       if (!result.error) router.refresh();
       return result;
     } catch {
@@ -33,11 +33,11 @@ export function RoleAdminClient({ users, roles }: { users: AccessUser[]; roles: 
           event.preventDefault();
           const form = event.currentTarget;
           const data = new FormData(form);
-          const result = await run(() => createUserAction(String(data.get("name") || ""), String(data.get("email") || ""), String(data.get("password") || ""), Number(data.get("roleId"))));
+          const result = await run(() => createUserAction(String(data.get("name") || ""), String(data.get("handle") || ""), String(data.get("password") || ""), Number(data.get("roleId"))));
           if (!result.error) form.reset();
         }}>
           <div className="form-group"><label htmlFor="member-name">Full name</label><input id="member-name" className="input-field" name="name" autoComplete="name" required /></div>
-          <div className="form-group"><label htmlFor="member-email">Work email</label><input id="member-email" className="input-field" name="email" type="email" autoComplete="email" required /></div>
+          <div className="form-group"><label htmlFor="member-handle">Worker login name</label><input id="member-handle" className="input-field" name="handle" type="text" minLength={2} maxLength={32} pattern="[A-Za-z0-9][A-Za-z0-9._-]{1,31}" autoCapitalize="none" autoComplete="off" placeholder="e.g. rita" required /><span className="field-hint">Their internal login ID will be name@{businessSlug}.gramflow. This is not an email inbox.</span></div>
           <div className="form-group"><label htmlFor="member-password">Temporary password</label><input id="member-password" className="input-field" name="password" type="password" autoComplete="new-password" minLength={10} required /></div>
           <div className="form-group"><label htmlFor="member-role">Access role</label><select id="member-role" className="input-field" name="roleId" required>{roles.map((role) => <option key={role.id} value={role.id}>{role.name}</option>)}</select></div>
           <button className="btn btn-primary" type="submit" disabled={busy}>{busy ? "Saving..." : "Create member"}</button>

@@ -6,42 +6,13 @@ import { createSession, clearSession, getSessionUser as readSessionUser } from "
 import { requireAuthenticatedUser } from "../auth/authorization";
 import { writeAuditLog } from "../audit";
 import { ActionResult, SessionUser } from "@/types";
-import { allowedEmailDomain, isEmailAllowed, normalizeEmail, validatePassword } from "../auth/policy";
+import { normalizeEmail, validatePassword } from "../auth/policy";
 
 interface DbUserRow { id: number; email: string; name: string; password_hash: string | null; google_subject: string | null; session_version: number; }
 
-export async function signupAction(emailRaw: string, passwordRaw: string, name: string, registrationCode: string): Promise<ActionResult> {
-  const expectedCode = process.env.REGISTRATION_CODE;
-  if (!expectedCode || registrationCode !== expectedCode) return { error: "Access Denied. Invalid registration code provided." };
-  const email = normalizeEmail(emailRaw);
-  if (!isEmailAllowed(email)) return { error: `Use an @${allowedEmailDomain()} address.` };
-  const passwordError = validatePassword(passwordRaw);
-  if (passwordError) return { error: passwordError };
-  try {
-    const passwordHash = await bcrypt.hash(passwordRaw, 12);
-    const user = await withTransaction(async (client) => {
-      await client.query("SELECT pg_advisory_xact_lock(hashtext('gramflow-bootstrap'))");
-      const existing = await client.query<{ count: number }>("SELECT count(*)::int AS count FROM users");
-      if (existing.rows[0].count > 0) throw new Error("BOOTSTRAP_CLOSED");
-      const inserted = await client.query<{ id: number; session_version: number }>(
-        "INSERT INTO users(email,password_hash,name) VALUES($1,$2,$3) RETURNING id,session_version", [email, passwordHash, name.trim() || "Admin"]);
-      const id = inserted.rows[0].id;
-      await client.query(`INSERT INTO user_roles(user_id,role_id) SELECT $1,id FROM roles WHERE name='ADMIN'`, [id]);
-      await writeAuditLog(client, { userId: id, action: "user.create", entityType: "user", entityId: id, metadata: { email, initialRole: "ADMIN" } });
-      return inserted.rows[0];
-    });
-    await createSession(user.id, user.session_version);
-    return { success: true };
-  } catch (error) {
-    if (error instanceof Error && error.message === "BOOTSTRAP_CLOSED") return { error: "Initial registration is closed. Ask an administrator to create your account." };
-    console.error("Signup error:", error);
-    return { error: "Failed to create account. Please try again." };
-  }
-}
-
 export async function loginAction(emailRaw: string, passwordRaw: string): Promise<ActionResult> {
   const email = normalizeEmail(emailRaw);
-  if (!isEmailAllowed(email)) return { error: "Invalid email or password." };
+  if (!email || email.length > 254 || !email.includes("@")) return { error: "Invalid login ID or password." };
   try {
     const attempt = await query<{ locked_until: string | null }>("SELECT locked_until FROM auth_login_attempts WHERE email=$1", [email]);
     if (attempt.rows[0]?.locked_until && new Date(attempt.rows[0].locked_until) > new Date()) {
@@ -57,15 +28,20 @@ export async function loginAction(emailRaw: string, passwordRaw: string): Promis
             first_failed_at=CASE WHEN auth_login_attempts.first_failed_at<now()-interval '15 minutes' THEN now() ELSE auth_login_attempts.first_failed_at END,
             locked_until=CASE WHEN (CASE WHEN auth_login_attempts.first_failed_at<now()-interval '15 minutes' THEN 1 ELSE auth_login_attempts.failed_count+1 END)>=5 THEN now()+interval '15 minutes' ELSE NULL END,
             updated_at=now()`, [email]);
-        await writeAuditLog(client, { userId: user?.id ?? null, action: "auth.login_failed", entityType: "user", entityId: user?.id ?? null, metadata: { email } });
       });
-      return { error: "Invalid email or password." };
+      return { error: "Invalid login ID or password." };
     }
-    await withTransaction(async (client) => {
+    const businessId = await withTransaction(async (client) => {
+      const membership = await client.query<{ business_id: number }>(
+        "SELECT business_id FROM user_roles WHERE user_id=$1 AND is_active ORDER BY business_id DESC LIMIT 1", [user.id]);
+      if (!membership.rows[0]) throw new Error("Account has no business workspace.");
+      const selectedBusiness = membership.rows[0].business_id;
+      await client.query("SELECT set_config('app.business_id',$1,true)", [String(selectedBusiness)]);
       await client.query("DELETE FROM auth_login_attempts WHERE email=$1", [email]);
       await writeAuditLog(client, { userId: user.id, action: "auth.login", entityType: "user", entityId: user.id });
+      return selectedBusiness;
     });
-    await createSession(user.id, user.session_version);
+    await createSession(user.id, user.session_version, businessId);
     return { success: true };
   } catch (error) { console.error("Login error:", error); return { error: "Server error during authentication." }; }
 }
@@ -90,7 +66,7 @@ export async function updateProfileData(email: string, currentPasswordRaw: strin
       await writeAuditLog(client, { userId: user.id, action: "user.profile_update", entityType: "user", entityId: user.id, metadata: { nameChanged: Boolean(newName), passwordChanged: Boolean(newPasswordRaw) } });
       return updated.rows[0].session_version;
     });
-    if (newPasswordRaw) await createSession(user.id, sessionVersion);
+    if (newPasswordRaw) await createSession(user.id, sessionVersion, actor.business_id);
     return { success: true };
   } catch (error) { return { error: error instanceof Error ? error.message : "Profile update failed." }; }
 }

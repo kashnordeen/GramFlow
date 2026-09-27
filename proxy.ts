@@ -17,7 +17,7 @@ export async function proxy(request: NextRequest) {
     response.cookies.delete("gramflow_auth");
     return response;
   }
-  if (isValid && isAuthPage) return NextResponse.redirect(new URL("/", request.url));
+  if (isValid && request.nextUrl.pathname.startsWith("/login")) return NextResponse.redirect(new URL("/", request.url));
   return NextResponse.next();
 }
 

@@ -1,4 +1,5 @@
 import { Pool, PoolClient, QueryResult, QueryResultRow, types } from "pg";
+import { readSessionClaims } from "./auth/session-token";
 
 types.setTypeParser(1700, (value) => Number(value));
 types.setTypeParser(20, (value) => Number(value));
@@ -26,13 +27,15 @@ export function getDb(): Pool {
 }
 
 export async function query<T extends QueryResultRow = QueryResultRow>(text: string, values: readonly unknown[] = []): Promise<QueryResult<T>> {
-  return getDb().query<T>(text, [...values]);
+  return withTransaction((client) => client.query<T>(text, [...values]));
 }
 
 export async function withTransaction<T>(operation: (client: PoolClient) => Promise<T>, isolationLevel: "READ COMMITTED" | "REPEATABLE READ" | "SERIALIZABLE" = "READ COMMITTED"): Promise<T> {
   const client = await getDb().connect();
   try {
     await client.query(`BEGIN ISOLATION LEVEL ${isolationLevel}`);
+    const claims = await readSessionClaims();
+    await client.query("SELECT set_config('app.business_id',$1,true)", [String(claims?.businessId ?? 0)]);
     const result = await operation(client);
     await client.query("COMMIT");
     return result;

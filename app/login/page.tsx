@@ -10,7 +10,7 @@ import { GoogleAuthButton } from "@/components/auth/GoogleAuthButton";
 
 const googleErrors: Record<string, string> = {
   cancelled: "Google sign-in was cancelled. You can try again.",
-  account: "No active account matches this Google identity. Ask an administrator to create your account.",
+  account: "No active business matches this Google account. Create a business or ask its owner for access.",
   domain: "Use your verified work Google account.",
   failed: "Google sign-in could not be completed. Please try again.",
 };
@@ -41,13 +41,13 @@ function LoginForm() {
   return <AuthShell mode="login" title="Sign in to your workspace" description="Pick up where you left off. Your stock, sales and customer ledger are ready.">
     {(error || googleError || notice) && <div className={`auth-message ${error || googleError ? "auth-error" : ""}`} role="alert">{error || googleError || notice}</div>}
     <form className="auth-form" onSubmit={submit}>
-      <div className="form-group"><label htmlFor="login-email">Work email</label><input id="login-email" className="input-field" type="email" autoComplete="username" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="you@company.com" required /></div>
+      <div className="form-group"><label htmlFor="login-email">Email or worker ID</label><input id="login-email" className="input-field" type="text" autoCapitalize="none" autoComplete="username" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="Your email or worker ID" required /></div>
       <div className="form-group"><label htmlFor="login-password">Password</label><div className="auth-password"><input id="login-password" className="input-field" type={showPassword ? "text" : "password"} autoComplete="current-password" value={password} onChange={(event) => setPassword(event.target.value)} placeholder="Enter your password" required /><button type="button" aria-label={showPassword ? "Hide password" : "Show password"} aria-pressed={showPassword} onClick={() => setShowPassword((value) => !value)}>{showPassword ? <EyeOff size={18} /> : <Eye size={18} />}</button></div></div>
       <button className="btn btn-primary auth-submit" type="submit" disabled={loading}><LockKeyhole size={17} aria-hidden="true" /> {loading ? "Signing in..." : "Sign in"}</button>
     </form>
     <div className="auth-divider"><span>or</span></div>
     <GoogleAuthButton intent="login" onError={setError} />
-    <p className="auth-switch">Setting up your first account? <Link href="/signup">Create an account</Link></p>
+    <p className="auth-switch">Starting a business? <Link href="/signup">Create a business</Link></p>
   </AuthShell>;
 }
 

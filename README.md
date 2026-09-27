@@ -173,7 +173,7 @@ The first account becomes `ADMIN`. The bootstrap route closes immediately afterw
 | `DATABASE_URL` | Yes | PostgreSQL connection string for the application database. |
 | `TEST_DATABASE_URL` | For integration tests | Disposable PostgreSQL database; the suite creates an isolated schema inside it. |
 | `DATABASE_SSL` | No | Set to `true` when the database host requires TLS. |
-| `DB_POOL_MAX` | No | Maximum database connections. Defaults to `10`. |
+| `DB_POOL_MAX` | No | Maximum database connections per application instance. Defaults to `1`. |
 | `JWT_SECRET` | Yes | Session and OAuth-flow signing secret with at least 32 characters. |
 | `REGISTRATION_CODE` | Yes for bootstrap | Private code required to create the first administrator. |
 | `ALLOWED_EMAIL_DOMAIN` | Yes | Exact organization domain allowed to authenticate. |
@@ -194,6 +194,8 @@ Never commit `.env`. The tracked `.env.example` contains placeholders and local 
 3. Register the exact callback URI: `http://localhost:3000/api/auth/google/callback`.
 4. Set `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, and `GOOGLE_REDIRECT_URI`.
 5. Run `npm run db:migrate` and restart GramFlow.
+
+For Vercel, register `https://YOUR-VERCEL-DOMAIN.vercel.app/api/auth/google/callback` and use that exact HTTPS URL for `GOOGLE_REDIRECT_URI`.
 
 Google signup is still limited to the first administrator and still requires `REGISTRATION_CODE`. After bootstrap, Google sign-in succeeds only for an existing active GramFlow account under `ALLOWED_EMAIL_DOMAIN`; it never creates an unexpected teammate. Existing password accounts can link a matching verified Google identity on first sign-in.
 
@@ -291,15 +293,25 @@ The test suite covers accounting balance checks, persisted authorization, dashbo
 
 GitHub Actions runs migrations, idempotent seeds, linting, type checking, the complete PostgreSQL suite, a production build, and a high-severity dependency audit on every pull request and push to `main`.
 
-## Production deployment.
+## Deploy with Vercel + Supabase
 
-1. Provision PostgreSQL and a least-privilege application role.
-2. Store database credentials, `JWT_SECRET`, registration code, and optional OAuth credentials in a managed secret store.
-3. Set `DATABASE_SSL=true` when required by the provider.
-4. Run `npm ci` and `npm run db:migrate` during deployment.
-5. Run `npm run build`, then `npm start`.
-6. Verify `/api/health`, authentication, a non-destructive read flow, and application logs.
-7. Schedule encrypted PostgreSQL backups and test restoration regularly.
+1. Create a Supabase PostgreSQL project and keep its database password out of Git.
+2. In Supabase **Connect**, copy the shared transaction-pooler connection string for the Vercel `DATABASE_URL`. Set `DATABASE_SSL=true` and `DB_POOL_MAX=1` in Vercel.
+3. Add `JWT_SECRET`, `REGISTRATION_CODE`, and `ALLOWED_EMAIL_DOMAIN` to the Vercel project. Add the three `GOOGLE_*` variables only when Google sign-in is enabled.
+4. From a trusted administration environment, set `DATABASE_URL` to the Supabase direct connection string, set `DATABASE_SSL=true`, and run:
+
+   ```powershell
+   npm ci
+   npm run db:migrate
+   npm run db:seed
+   ```
+
+   Migrations are transactional and checksum-verified. `db:seed` idempotently creates required roles, permissions, and ledger accounts. Never run `db:seed:demo` against production, and do not add migration or seed commands to the Vercel build.
+5. Import the GitHub repository into Vercel. Keep the repository root, select **Next.js**, set **Install Command** to `npm ci`, set **Build Command** to `npm run build`, and leave **Output Directory** at the Next.js default.
+6. If Google OAuth is enabled, register `https://YOUR-VERCEL-DOMAIN.vercel.app/api/auth/google/callback` in Google Cloud and set the same value as `GOOGLE_REDIRECT_URI`.
+7. Deploy, then confirm `/api/health` returns `{"status":"ok"}`, sign in, and open the dashboard or stock list as a safe read-only database check.
+
+No `vercel.json` is required for this layout. The application uses the Node.js runtime and the existing `pg` driver; its queries are unnamed, so they are compatible with Supabase transaction pooling.
 
 The admin-only `/api/backup` route creates a portable logical export without password hashes or authentication secrets. It is useful for portability, but it is not a replacement for operational `pg_dump` backups.
 

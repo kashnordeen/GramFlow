@@ -23,6 +23,8 @@
 # misc
 .DS_Store
 *.pem
+*.key
+*.log
 
 # debug
 npm-debug.log*
@@ -46,6 +48,9 @@ yarn-error.log*
 
 # vercel
 .vercel
+
+# supabase
+/supabase/.temp/
 
 # typescript
 *.tsbuildinfo

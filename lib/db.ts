@@ -13,7 +13,7 @@ function createPool(): Pool {
   }
   return new Pool({
     connectionString,
-    max: Number(process.env.DB_POOL_MAX || 10),
+    max: Number(process.env.DB_POOL_MAX || 1),
     idleTimeoutMillis: 30_000,
     connectionTimeoutMillis: 10_000,
     ssl: process.env.DATABASE_SSL === "true" ? { rejectUnauthorized: false } : undefined,

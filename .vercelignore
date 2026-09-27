@@ -1,0 +1,16 @@
+.env*
+!.env.example
+docs/ideas/
+supabase/.temp/
+coverage/
+out/
+build/
+backups/
+*.db
+*.db-*
+*.sqlite
+*.sqlite3
+*.key
+*.pem
+*.log
+Registration Code.txt

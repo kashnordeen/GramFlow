@@ -22,14 +22,6 @@ export function googleConfig() {
   return { clientId, clientSecret, redirectUri };
 }
 
-export function checkRegistrationCode(code: string) {
-  const expected = process.env.REGISTRATION_CODE;
-  if (!expected) return false;
-  const left = createHash("sha256").update(code).digest();
-  const right = createHash("sha256").update(expected).digest();
-  return timingSafeEqual(left, right);
-}
-
 export async function createGoogleFlow(intent: "login" | "signup") {
   const config = googleConfig();
   if (!config) throw new Error("Google sign-in is not configured.");

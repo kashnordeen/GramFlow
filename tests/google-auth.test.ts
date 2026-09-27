@@ -1,21 +1,18 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { checkRegistrationCode, createGoogleFlow, readGoogleFlow } from "../lib/auth/google";
+import { createGoogleFlow, readGoogleFlow } from "../lib/auth/google";
 
 test("Google flow binds a short-lived signed cookie to the authorization state", async () => {
-  const names = ["JWT_SECRET", "GOOGLE_CLIENT_ID", "GOOGLE_CLIENT_SECRET", "GOOGLE_REDIRECT_URI", "REGISTRATION_CODE", "ALLOWED_EMAIL_DOMAIN"] as const;
+  const names = ["JWT_SECRET", "GOOGLE_CLIENT_ID", "GOOGLE_CLIENT_SECRET", "GOOGLE_REDIRECT_URI", "ALLOWED_EMAIL_DOMAIN"] as const;
   const previous = Object.fromEntries(names.map((name) => [name, process.env[name]]));
   Object.assign(process.env, {
     JWT_SECRET: "google-flow-test-secret-at-least-32-characters",
     GOOGLE_CLIENT_ID: "client-id",
     GOOGLE_CLIENT_SECRET: "client-secret",
     GOOGLE_REDIRECT_URI: "http://localhost:3000/api/auth/google/callback",
-    REGISTRATION_CODE: "private-code",
     ALLOWED_EMAIL_DOMAIN: "example.com",
   });
   try {
-    assert.equal(checkRegistrationCode("private-code"), true);
-    assert.equal(checkRegistrationCode("wrong"), false);
     const { url, flow } = await createGoogleFlow("signup");
     const params = new URL(url).searchParams;
     assert.equal(params.get("response_type"), "code");

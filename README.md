@@ -31,7 +31,7 @@ Everything that matters to a sale—stock consumption, customer receivables, jou
 | **Customers** | Customer balances, payment history, outstanding receivables, and downloadable account reports. |
 | **Accounting** | Balanced, immutable double-entry journals for sales, inventory cost, payments, adjustments, and reversals. |
 | **Access control** | Database-backed roles and permissions enforced again on every protected server operation. |
-| **Authentication** | Password login plus optional Google Workspace sign-in using authorization code, PKCE, state, and nonce validation. |
+| **Authentication** | Google-only business signup, Google owner sign-in, and internal worker IDs with passwords. OAuth uses authorization code, PKCE, state, and nonce validation. |
 | **Auditability** | Append-only audit records written inside the same transaction as the business change. |
 | **Privacy controls** | One-click masking of sensitive financial values throughout the workspace. |
 | **Responsive workflow** | Desktop command palette, compact navigation, mobile navigation, light/dark themes, and accessible states. |
@@ -156,15 +156,11 @@ npm run dev
 
 Open [http://localhost:3000](http://localhost:3000).
 
-### 5. Create the first administrator
+### 5. Create a business
 
-Open `/signup` and provide:
+Configure Google OAuth, then open `/signup` and continue with a verified Google account under `ALLOWED_EMAIL_DOMAIN` (for this deployment, `gmail.com`). Name the business and set its starting gram rate. New rates start at `0`; custom weight ranges are managed in **Settings**. Every Google signup creates a separate business workspace, and the same owner can create another business later.
 
-- an email under `ALLOWED_EMAIL_DOMAIN`
-- a password with at least 10 characters, uppercase, lowercase, and numeric characters
-- the private `REGISTRATION_CODE` from `.env`
-
-The first account becomes `ADMIN`. The bootstrap route closes immediately afterward; additional users are created by an administrator from **Access control**.
+From **Roles & permissions**, the owner creates worker login names and temporary passwords. A name such as `rita` becomes an internal ID such as `rita@business-name-2.gramflow`; it is **not** a real email inbox. Workers use the password sign-in form, while business owners use Google.
 
 ## Configuration
 
@@ -175,11 +171,10 @@ The first account becomes `ADMIN`. The bootstrap route closes immediately afterw
 | `DATABASE_SSL` | No | Set to `true` when the database host requires TLS. |
 | `DB_POOL_MAX` | No | Maximum database connections per application instance. Defaults to `1`. |
 | `JWT_SECRET` | Yes | Session and OAuth-flow signing secret with at least 32 characters. |
-| `REGISTRATION_CODE` | Yes for bootstrap | Private code required to create the first administrator. |
-| `ALLOWED_EMAIL_DOMAIN` | Yes | Exact organization domain allowed to authenticate. |
-| `GOOGLE_CLIENT_ID` | No | Google OAuth web client ID. All three Google variables must be configured together. |
-| `GOOGLE_CLIENT_SECRET` | No | Google OAuth web client secret. Keep it in a managed secret store in production. |
-| `GOOGLE_REDIRECT_URI` | No | Exact callback URL ending in `/api/auth/google/callback`. HTTPS is required in production. |
+| `ALLOWED_EMAIL_DOMAIN` | Yes | Exact Google email domain allowed to create or sign in to a business; use `gmail.com` for consumer Gmail accounts. |
+| `GOOGLE_CLIENT_ID` | Yes for signup | Google OAuth web client ID. All three Google variables must be configured together. |
+| `GOOGLE_CLIENT_SECRET` | Yes for signup | Google OAuth web client secret. Keep it in a managed secret store in production. |
+| `GOOGLE_REDIRECT_URI` | Yes for signup | Exact callback URL ending in `/api/auth/google/callback`. HTTPS is required in production. |
 | `SEED_ADMIN_EMAIL` | No | Optional development administrator created by `db:seed`. |
 | `SEED_ADMIN_PASSWORD` | No | Password for the optional development administrator. |
 | `SEED_ADMIN_NAME` | No | Display name for the optional development administrator. |
@@ -187,7 +182,7 @@ The first account becomes `ADMIN`. The bootstrap route closes immediately afterw
 
 Never commit `.env`. The tracked `.env.example` contains placeholders and local development defaults only.
 
-## Optional Google Workspace sign-in
+## Google sign-in and signup
 
 1. Create a Google OAuth **Web application** client.
 2. Add the application origin, such as `http://localhost:3000` during local development.
@@ -197,7 +192,7 @@ Never commit `.env`. The tracked `.env.example` contains placeholders and local 
 
 For Vercel, register `https://YOUR-VERCEL-DOMAIN.vercel.app/api/auth/google/callback` and use that exact HTTPS URL for `GOOGLE_REDIRECT_URI`.
 
-Google signup is still limited to the first administrator and still requires `REGISTRATION_CODE`. After bootstrap, Google sign-in succeeds only for an existing active GramFlow account under `ALLOWED_EMAIL_DOMAIN`; it never creates an unexpected teammate. Existing password accounts can link a matching verified Google identity on first sign-in.
+Google signup is open to verified accounts under `ALLOWED_EMAIL_DOMAIN` and creates a new private business. Google sign-in opens an existing business; existing password accounts can link a matching verified Google identity on first sign-in. Workers are created by a business administrator, not through public signup.
 
 The flow uses authorization code plus PKCE, a signed 10-minute flow cookie, state and nonce validation, verified Google signatures, strict issuer and audience checks, verified email, and—when using a custom domain—the matching Workspace hosted-domain claim.
 
@@ -297,7 +292,7 @@ GitHub Actions runs migrations, idempotent seeds, linting, type checking, the co
 
 1. Create a Supabase PostgreSQL project and keep its database password out of Git.
 2. In Supabase **Connect**, copy the shared transaction-pooler connection string for the Vercel `DATABASE_URL`. Set `DATABASE_SSL=true` and `DB_POOL_MAX=1` in Vercel.
-3. Add `JWT_SECRET`, `REGISTRATION_CODE`, and `ALLOWED_EMAIL_DOMAIN` to the Vercel project. Add the three `GOOGLE_*` variables only when Google sign-in is enabled.
+3. Add `JWT_SECRET`, `ALLOWED_EMAIL_DOMAIN`, and the three `GOOGLE_*` variables to the Vercel project.
 4. From a trusted administration environment, set `DATABASE_URL` to the Supabase direct connection string, set `DATABASE_SSL=true`, and run:
 
    ```powershell
@@ -308,7 +303,7 @@ GitHub Actions runs migrations, idempotent seeds, linting, type checking, the co
 
    Migrations are transactional and checksum-verified. `db:seed` idempotently creates required roles, permissions, and ledger accounts. Never run `db:seed:demo` against production, and do not add migration or seed commands to the Vercel build.
 5. Import the GitHub repository into Vercel. Keep the repository root, select **Next.js**, set **Install Command** to `npm ci`, set **Build Command** to `npm run build`, and leave **Output Directory** at the Next.js default.
-6. If Google OAuth is enabled, register `https://YOUR-VERCEL-DOMAIN.vercel.app/api/auth/google/callback` in Google Cloud and set the same value as `GOOGLE_REDIRECT_URI`.
+6. Register `https://YOUR-VERCEL-DOMAIN.vercel.app/api/auth/google/callback` in Google Cloud and set the same value as `GOOGLE_REDIRECT_URI`.
 7. Deploy, then confirm `/api/health` returns `{"status":"ok"}`, sign in, and open the dashboard or stock list as a safe read-only database check.
 
 No `vercel.json` is required for this layout. The application uses the Node.js runtime and the existing `pg` driver; its queries are unnamed, so they are compatible with Supabase transaction pooling.
@@ -317,12 +312,13 @@ The admin-only `/api/backup` route creates a portable logical export without pas
 
 ### Rollback
 
-Application code can be rolled back to the previous release tag. Database migrations are forward-only and transactional, so inspect migration notes before deployment and restore from a tested database backup if a data-level rollback is required.
+The business migration is forward-only. After `008_strict_business_rls.sql`, the pre-workspace app cannot read business data because it does not set a business context; do not roll back code alone. Restore a compatible app/database pair from a tested backup if a full rollback is required.
 
 ## Security model
 
 - Passwords use bcrypt with cost 12.
-- Sessions are signed JWTs containing only the user ID and session version.
+- Sessions are signed JWTs containing the user ID, session version, and selected business ID.
+- Business data is separated by PostgreSQL row-level security and cross-business foreign keys.
 - Session cookies are `httpOnly`, `SameSite=Lax`, and `Secure` in production.
 - Five failed password logins within 15 minutes lock the email for 15 minutes.
 - Every protected mutation checks the authenticated user's current database permissions.
@@ -361,9 +357,9 @@ Set `TEST_DATABASE_URL`. The connected role must be allowed to create and drop s
 
 All three Google variables must be set. The configured redirect URI must exactly match the Google Cloud console entry and end with `/api/auth/google/callback`.
 
-### Initial signup is closed
+### Google signup fails
 
-This is expected after the first user exists. Sign in as an administrator and create or manage teammates from `/admin/roles`.
+Confirm the Google OAuth callback URL exactly matches `GOOGLE_REDIRECT_URI` and `ALLOWED_EMAIL_DOMAIN` matches the account's verified domain. No registration code is required.
 
 ### A migration checksum changed
 

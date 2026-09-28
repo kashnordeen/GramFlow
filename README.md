@@ -1,4 +1,21 @@
-# GramFlow
+<div align="center">
+  <img src="public/brand-mark.svg" alt="GramFlow" width="76" />
+  <h1>GramFlow</h1>
+  <p><strong>The operations workspace for inventory, sales, receivables, and accounting.</strong></p>
+  <p>Know what stock you have, what every sale earned, what customers owe, and what needs attention next.</p>
+
+  <p>
+    <a href="https://github.com/kashnordeen/GramFlow/releases/latest"><img alt="Latest release" src="https://img.shields.io/github/v/release/kashnordeen/GramFlow?style=flat-square&color=B9F52A&labelColor=111B17" /></a>
+    <a href="https://github.com/kashnordeen/GramFlow/actions/workflows/ci.yml"><img alt="CI status" src="https://img.shields.io/github/actions/workflow/status/kashnordeen/GramFlow/ci.yml?branch=main&style=flat-square&label=CI" /></a>
+    <img alt="Next.js 16" src="https://img.shields.io/badge/Next.js-16-000000?style=flat-square&logo=nextdotjs" />
+    <img alt="PostgreSQL 15+" src="https://img.shields.io/badge/PostgreSQL-15%2B-4169E1?style=flat-square&logo=postgresql&logoColor=white" />
+    <img alt="TypeScript 5" src="https://img.shields.io/badge/TypeScript-5-3178C6?style=flat-square&logo=typescript&logoColor=white" />
+  </p>
+</div>
+
+---
+
+![Animated GramFlow dashboard tour](docs/media/gramflow-ui-tour.svg)
 
 GramFlow is a multi-business inventory, sales, and receivables app built with Next.js and PostgreSQL. Each business has its own stock, customers, gram rates, team, and accounting records. Sales allocate stock using FIFO and update the ledger and audit history in the same database transaction.
 
@@ -39,3 +56,10 @@ npm run build
 The app runs on Vercel with a PostgreSQL database such as Supabase. Set `DATABASE_URL`, `JWT_SECRET`, `ALLOWED_EMAIL_DOMAIN`, and the three `GOOGLE_*` variables in Vercel. For Supabase, use its transaction-pooler URL for the app, with `DATABASE_SSL=true` and `DB_POOL_MAX=1`. Run `npm run db:setup` from a trusted environment using the direct database URL before the first deployment; do not run migrations or seeds in the Vercel build.
 
 Register the production URL ending in `/api/auth/google/callback` in Google Cloud and use that exact URL for `GOOGLE_REDIRECT_URI`. Keep credentials out of Git. On later schema upgrades, run `npm run db:migrate` before deploying code that depends on the new schema.
+
+---
+
+<div align="center">
+  <strong>GramFlow</strong><br />
+  Inventory, receivables, and accounting—kept in one reliable flow.
+</div>

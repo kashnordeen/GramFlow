@@ -1070,7 +1070,7 @@ p {
 
   .main-content {
     margin-left: 0 !important;
-    padding-bottom: 6rem;
+    padding-bottom: calc(7rem + env(safe-area-inset-bottom));
   }
 
   .top-utility-bar {
